@@ -57,6 +57,15 @@ describe('detectConflicts', () => {
     expect(result.current.conflictIds).toContain('draft-2')
   })
 
+  it('is idempotent — calling setPosts twice with same data keeps conflictIds stable', () => {
+    const { result } = renderHook(() => useGridStore())
+    const posts = [makeLocked('locked-1', 3), makeDraft('draft-1', 4)]
+    act(() => { result.current.setPosts(posts) })
+    const firstConflictIds = [...result.current.conflictIds]
+    act(() => { result.current.setPosts(posts) })
+    expect(result.current.conflictIds).toEqual(firstConflictIds)
+  })
+
   it('empty slots are never conflicts', () => {
     const { result } = renderHook(() => useGridStore())
     act(() => {

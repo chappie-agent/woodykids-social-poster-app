@@ -24,7 +24,10 @@ export const useGridStore = create<GridStore>((set, get) => ({
 
   setOrder: (ids) => {
     set(state => ({
-      posts: state.posts.map(p => ({ ...p, position: ids.indexOf(p.id) })),
+      posts: state.posts.map(p => {
+        const idx = ids.indexOf(p.id)
+        return idx === -1 ? p : { ...p, position: idx }
+      }),
     }))
     get().detectConflicts()
   },
@@ -52,7 +55,7 @@ export const useGridStore = create<GridStore>((set, get) => ({
     const minLockedPosition = Math.min(...lockedPositions)
 
     const conflictIds = posts
-      .filter(p => p.state === 'draft' && p.position > minLockedPosition)
+      .filter(p => (p.state === 'draft' || p.state === 'conflict') && p.position > minLockedPosition)
       .map(p => p.id)
 
     // Update state field on the posts themselves
