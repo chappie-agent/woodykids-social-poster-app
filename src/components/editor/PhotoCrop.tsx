@@ -17,6 +17,8 @@ export function PhotoCrop({ imageUrl, cropData, onChange }: Props) {
   const scale = useMotionValue(cropData.scale)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  // When `target` is provided, useGesture binds directly to the ref and returns void.
+  // We use the ref-free form (no target) so bind() returns spreadable event handlers.
   const bind = useGesture(
     {
       onDrag: ({ offset: [ox, oy] }) => {
@@ -36,13 +38,12 @@ export function PhotoCrop({ imageUrl, cropData, onChange }: Props) {
     },
     {
       drag: {
-        from: () => [x.get(), y.get()],
+        from: () => [x.get(), y.get()] as [number, number],
       },
       pinch: {
         scaleBounds: { min: 1, max: 4 },
-        from: () => [scale.get(), 0],
+        from: () => [scale.get(), 0] as [number, number],
       },
-      target: containerRef,
     },
   )
 
