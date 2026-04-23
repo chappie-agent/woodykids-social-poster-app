@@ -1,65 +1,120 @@
-import Image from "next/image";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const platforms = [
+  { id: "instagram", label: "Instagram", emoji: "📸", color: "bg-pink-100 text-pink-700" },
+  { id: "facebook", label: "Facebook", emoji: "📘", color: "bg-blue-100 text-blue-700" },
+  { id: "tiktok", label: "TikTok", emoji: "🎵", color: "bg-slate-100 text-slate-700" },
+  { id: "linkedin", label: "LinkedIn", emoji: "💼", color: "bg-cyan-100 text-cyan-700" },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-[#FFF8F0] font-sans">
+      {/* Header */}
+      <header className="border-b border-orange-100 bg-white/70 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🪵</span>
+            <span className="text-xl font-bold tracking-tight text-orange-900">
+              WoodyKids <span className="text-orange-500">Poster</span>
+            </span>
+          </div>
+          <Badge variant="outline" className="border-orange-300 text-orange-600 text-xs px-3 py-1">
+            Beta
+          </Badge>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </header>
+
+      {/* Hero */}
+      <section className="max-w-5xl mx-auto px-6 pt-16 pb-10 text-center">
+        <p className="text-sm font-semibold tracking-widest text-orange-400 uppercase mb-4">
+          Social Media Made Simple
+        </p>
+        <h1 className="text-5xl font-extrabold text-orange-900 leading-tight mb-5">
+          Maak posts voor<br />
+          <span className="text-orange-500">alle platformen</span> tegelijk
+        </h1>
+        <p className="text-lg text-orange-800/60 max-w-xl mx-auto">
+          Schrijf één keer, publiceer overal. Perfect voor WoodyKids content.
+        </p>
+      </section>
+
+      {/* Composer */}
+      <section className="max-w-5xl mx-auto px-6 pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* Editor */}
+          <Card className="lg:col-span-3 border-orange-100 shadow-sm bg-white">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base text-orange-900">✍️ Jouw bericht</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Select>
+                <SelectTrigger className="border-orange-200 focus:ring-orange-300">
+                  <SelectValue placeholder="Kies platform..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {platforms.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.emoji} {p.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Textarea
+                placeholder="Schrijf hier je post..."
+                className="min-h-[180px] border-orange-200 focus-visible:ring-orange-300 resize-none text-orange-900 placeholder:text-orange-300"
+              />
+
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-orange-400">0 / 280 tekens</span>
+                <Button className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6">
+                  Publiceren →
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Platforms */}
+          <div className="lg:col-span-2 space-y-4">
+            <p className="text-xs font-semibold tracking-widest text-orange-400 uppercase px-1">
+              Platformen
+            </p>
+            {platforms.map((p) => (
+              <Card
+                key={p.id}
+                className="border-orange-100 shadow-sm bg-white hover:shadow-md transition-shadow cursor-pointer"
+              >
+                <CardContent className="py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{p.emoji}</span>
+                    <span className="font-semibold text-orange-900">{p.label}</span>
+                  </div>
+                  <Badge className={`${p.color} border-0 text-xs font-medium`}>
+                    Verbinden
+                  </Badge>
+                </CardContent>
+              </Card>
+            ))}
+
+            <Card className="border-dashed border-orange-200 bg-transparent shadow-none">
+              <CardContent className="py-4 text-center text-sm text-orange-300">
+                + Platform toevoegen
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </main>
-    </div>
+      </section>
+    </main>
   );
 }
