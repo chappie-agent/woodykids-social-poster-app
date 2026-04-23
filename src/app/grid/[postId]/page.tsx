@@ -51,7 +51,7 @@ function EditorContent({ postId }: { postId: string }) {
     await fetch(`/api/posts/${postId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scheduledAt: isoDateTime }),
+      body: JSON.stringify({ state: 'locked', scheduledAt: isoDateTime }),
     })
     await fetch(`/api/posts/${postId}/publish`, {
       method: 'POST',
