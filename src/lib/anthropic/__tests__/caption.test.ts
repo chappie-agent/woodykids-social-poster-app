@@ -31,6 +31,11 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('"closer"')
     expect(prompt).toContain('"hashtags"')
   })
+
+  it('bevat de caption-lengtelimiet instructie', () => {
+    const prompt = buildSystemPrompt('')
+    expect(prompt).toContain('2.200 tekens')
+  })
 })
 
 describe('buildUserContent', () => {

@@ -14,6 +14,7 @@ type ClaudeOutput = {
 export function buildSystemPrompt(toneOfVoice: string): string {
   return `Je bent een social media copywriter voor WoodyKids, een Nederlandse kinderspeelgoedwinkel.
 Schrijf altijd in het Nederlands.
+Houd de totale caption (opener + middenstuk + afsluiter + hashtags samen) onder de 2.200 tekens.
 Volg deze richtlijnen strikt op:
 
 ${toneOfVoice}
