@@ -1,8 +1,30 @@
+// src/lib/types.ts
+
+export type ShopifyVariant = {
+  id: string
+  title: string   // bijv. "Naturel / L"
+  price: string   // bijv. "24.95"
+}
+
+export type ShopifyProduct = {
+  id: string
+  title: string
+  images: string[]
+  variants: ShopifyVariant[]
+  collectionIds: string[]
+}
+
+export type ShopifyCollection = {
+  id: string
+  title: string
+}
+
 export type PostSourceShopify = {
   kind: 'shopify'
   productId: string
   productTitle: string
   images: string[]
+  variants?: ShopifyVariant[]   // optional: niet aanwezig in oude fixture data
   selectedImageIndex: number
 }
 
@@ -43,18 +65,12 @@ export type PostState = 'empty' | 'draft' | 'conflict' | 'locked'
 export type Post = {
   id: string
   state: PostState
-  position: number        // 0 = top-left (newest), ascending = older
+  position: number
   source: PostSource | null
   cropData: CropData
   caption: PostCaption | null
   scheduledAt: string | null   // ISO 8601
   isPerson: boolean
-}
-
-export type Product = {
-  id: string
-  title: string
-  images: string[]
 }
 
 export type ToneOfVoice = {
