@@ -23,6 +23,10 @@ export async function POST(request: NextRequest) {
     position: number
   }
 
+  if (!['image', 'video'].includes(mediaType)) {
+    return NextResponse.json({ error: 'Invalid mediaType' }, { status: 400 })
+  }
+
   const source: PostSourceUpload = { kind: 'upload', mediaUrl, mediaType, userPrompt }
 
   const supabase = await createClient()
