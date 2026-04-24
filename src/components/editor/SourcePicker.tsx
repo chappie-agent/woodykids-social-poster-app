@@ -18,16 +18,18 @@ export function SourcePicker({ open, onClose, onChooseProduct, onChooseUpload }:
         </SheetHeader>
         <div className="flex flex-col gap-3">
           <button
+            type="button"
             onClick={() => { onClose(); onChooseProduct() }}
             className="w-full text-left px-4 py-4 rounded-xl border border-woody-taupe/30 bg-woody-beige text-sm font-semibold text-woody-brown"
           >
-            🛍 Shopify product
+            <span aria-hidden="true">🛍 </span>Shopify product
           </button>
           <button
+            type="button"
             onClick={() => { onClose(); onChooseUpload() }}
             className="w-full text-left px-4 py-4 rounded-xl border border-woody-taupe/30 bg-woody-beige text-sm font-semibold text-woody-brown"
           >
-            📷 Eigen foto of video
+            <span aria-hidden="true">📷 </span>Eigen foto of video
           </button>
         </div>
       </SheetContent>
