@@ -113,7 +113,7 @@ function EditorContent({ postId }: { postId: string }) {
       toast.success('Ingepland voor Zernio 🎉')
       router.push('/grid')
     } catch {
-      setGenerateError('Inplannen mislukt. Probeer opnieuw.')
+      toast.error('Inplannen mislukt. Probeer opnieuw.')
     } finally {
       setSaving(false)
     }
