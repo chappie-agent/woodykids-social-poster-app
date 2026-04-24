@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { buildSystemPrompt, buildUserContent, parseCaptionResponse } from '@/lib/anthropic/caption'
+import { buildSystemPrompt, buildUserContent, buildUploadUserContent, parseCaptionResponse } from '@/lib/anthropic/caption'
 import type { PostSourceShopify } from '@/lib/types'
+import type { PostSourceUpload } from '@/lib/types'
 
 const shopifySource: PostSourceShopify = {
   kind: 'shopify',
@@ -102,5 +103,51 @@ describe('parseCaptionResponse', () => {
       hashtags: 'niet-een-array',
     })
     expect(() => parseCaptionResponse(bad)).toThrow()
+  })
+})
+
+describe('buildUploadUserContent', () => {
+  const imageSource: PostSourceUpload = {
+    kind: 'upload',
+    mediaUrl: 'https://storage.supabase.co/image.jpg',
+    mediaType: 'image',
+    userPrompt: 'Pasen sale, 20% korting',
+  }
+
+  const videoSource: PostSourceUpload = {
+    kind: 'upload',
+    mediaUrl: 'https://storage.supabase.co/video.mp4',
+    mediaType: 'video',
+    userPrompt: 'Zomercollectie 2026',
+  }
+
+  it('returns image block + text block for image uploads', () => {
+    const blocks = buildUploadUserContent(imageSource)
+    expect(blocks).toHaveLength(2)
+    expect(blocks[0]).toEqual({
+      type: 'image',
+      source: { type: 'url', url: 'https://storage.supabase.co/image.jpg' },
+    })
+    expect(blocks[1].type).toBe('text')
+  })
+
+  it('includes userPrompt in text block for image uploads', () => {
+    const blocks = buildUploadUserContent(imageSource)
+    const textBlock = blocks.find(b => b.type === 'text') as { type: 'text'; text: string }
+    expect(textBlock.text).toContain('Pasen sale, 20% korting')
+  })
+
+  it('returns only a text block for video uploads (no vision)', () => {
+    const blocks = buildUploadUserContent(videoSource)
+    expect(blocks).toHaveLength(1)
+    expect(blocks[0].type).toBe('text')
+  })
+
+  it('text block contains caption instruction and hashtag request', () => {
+    const blocks = buildUploadUserContent(videoSource)
+    const textBlock = blocks[0] as { type: 'text'; text: string }
+    expect(textBlock.text).toContain('Instagram-caption')
+    expect(textBlock.text).toContain('Nederlandse hashtags')
+    expect(textBlock.text).toContain('Zomercollectie 2026')
   })
 })

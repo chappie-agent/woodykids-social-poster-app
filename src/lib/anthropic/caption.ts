@@ -1,4 +1,4 @@
-import type { PostCaption, PostSourceShopify } from '@/lib/types'
+import type { PostCaption, PostSourceShopify, PostSourceUpload } from '@/lib/types'
 
 type ContentBlock =
   | { type: 'image'; source: { type: 'url'; url: string } }
@@ -49,6 +49,30 @@ export function buildUserContent(source: PostSourceShopify): ContentBlock[] {
     ]
       .filter(line => line !== null)
       .join('\n'),
+  })
+
+  return content
+}
+
+export function buildUploadUserContent(source: PostSourceUpload): ContentBlock[] {
+  const content: ContentBlock[] = []
+
+  if (source.mediaType === 'image') {
+    content.push({
+      type: 'image',
+      source: { type: 'url', url: source.mediaUrl },
+    })
+  }
+
+  content.push({
+    type: 'text',
+    text: [
+      `Eigen post: ${source.userPrompt}`,
+      '',
+      'Schrijf een Instagram-caption in drie losse secties (opener, middenstuk, afsluiter).',
+      'Elke sectie heeft drie varianten die in toon licht van elkaar verschillen.',
+      'Genereer ook vijf Nederlandse hashtags.',
+    ].join('\n'),
   })
 
   return content
