@@ -11,7 +11,7 @@ import { PhotoSelector } from '@/components/editor/PhotoSelector'
 import { CaptionBlock } from '@/components/editor/CaptionBlock'
 import { HashtagBadges } from '@/components/editor/HashtagBadges'
 import { ScheduleSheet } from '@/components/editor/ScheduleSheet'
-import type { Post, CaptionBlock as CaptionBlockType, Hashtag, CropData } from '@/lib/types'
+import type { Post, CaptionBlock as CaptionBlockType, Hashtag, CropData, PostCaption } from '@/lib/types'
 
 function EditorContent({ postId }: { postId: string }) {
   const router = useRouter()
@@ -24,6 +24,18 @@ function EditorContent({ postId }: { postId: string }) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [generateError, setGenerateError] = useState<string | null>(null)
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const INSTAGRAM_CAPTION_LIMIT = 2200
+
+  function assembledLength(caption: PostCaption): number {
+    const opener = caption.opener.variants[caption.opener.selected] ?? ''
+    const middle = caption.middle.variants[caption.middle.selected] ?? ''
+    const closer = caption.closer.variants[caption.closer.selected] ?? ''
+    const hashtags = caption.hashtags.filter(h => h.active).map(h => h.text).join(' ')
+    const parts: string[] = [opener, middle, closer]
+    if (hashtags) parts.push(hashtags)
+    return parts.join('\n\n').length
+  }
 
   useEffect(() => {
     if (!post) router.replace('/grid')
@@ -204,6 +216,14 @@ function EditorContent({ postId }: { postId: string }) {
               hashtags={post.caption.hashtags}
               onChange={(hashtags: Hashtag[]) => save({ caption: { ...post.caption!, hashtags } })}
             />
+            {(() => {
+              const count = assembledLength(post.caption)
+              return (
+                <p className={`text-xs text-right pr-1 ${count > INSTAGRAM_CAPTION_LIMIT ? 'text-red-600 font-semibold' : 'text-woody-taupe'}`}>
+                  {count} / {INSTAGRAM_CAPTION_LIMIT} tekens
+                </p>
+              )
+            })()}
           </>
         )}
       </div>
