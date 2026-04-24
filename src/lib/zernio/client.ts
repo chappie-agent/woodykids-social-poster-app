@@ -24,14 +24,23 @@ export async function scheduleZernioPost(input: ZernioPostInput): Promise<void> 
     body.media = [{ url: input.imageUrl }]
   }
 
-  const res = await fetch('https://zernio.com/api/v1/posts', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  })
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 30_000)
+
+  let res: Response
+  try {
+    res = await fetch('https://zernio.com/api/v1/posts', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    })
+  } finally {
+    clearTimeout(timeoutId)
+  }
 
   if (!res.ok) {
     const text = await res.text()

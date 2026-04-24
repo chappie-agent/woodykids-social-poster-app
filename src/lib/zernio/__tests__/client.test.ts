@@ -67,4 +67,12 @@ describe('scheduleZernioPost', () => {
       scheduleZernioPost({ content: 'Test', scheduledFor: '2026-04-24T10:00:00' }),
     ).rejects.toThrow('ZERNIO_INSTAGRAM_ACCOUNT_ID')
   })
+
+  it('throws when ZERNIO_FACEBOOK_ACCOUNT_ID is missing', async () => {
+    delete process.env.ZERNIO_FACEBOOK_ACCOUNT_ID
+
+    await expect(
+      scheduleZernioPost({ content: 'Test', scheduledFor: '2026-04-24T10:00:00' }),
+    ).rejects.toThrow('ZERNIO_FACEBOOK_ACCOUNT_ID')
+  })
 })
