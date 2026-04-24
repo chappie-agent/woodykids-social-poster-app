@@ -22,7 +22,18 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params
-  const { scheduledAt } = await request.json() as { scheduledAt: string }
+  let scheduledAt: string
+  try {
+    const body = await request.json() as { scheduledAt: string }
+    scheduledAt = body.scheduledAt
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
+
+  if (!scheduledAt || isNaN(Date.parse(scheduledAt))) {
+    return NextResponse.json({ error: 'Ongeldige scheduledAt waarde' }, { status: 400 })
+  }
+
   const supabase = await createClient()
 
   const { data: postRow, error: postError } = await supabase
