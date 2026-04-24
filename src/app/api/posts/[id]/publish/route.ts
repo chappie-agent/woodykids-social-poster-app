@@ -53,6 +53,8 @@ export async function POST(
   let imageUrl: string | undefined
   if (source?.kind === 'shopify') {
     imageUrl = source.images[source.selectedImageIndex] ?? source.images[0]
+  } else if (source?.kind === 'upload') {
+    imageUrl = source.mediaUrl
   }
 
   const content = assembleCaption(caption)

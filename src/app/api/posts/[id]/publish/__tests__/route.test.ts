@@ -131,4 +131,40 @@ describe('POST /api/posts/[id]/publish', () => {
     expect(body.error).toBe('Inplannen bij Zernio mislukt')
     expect(updateMock).not.toHaveBeenCalled()
   })
+
+  it('extracts mediaUrl as imageUrl for upload posts', async () => {
+    const { createClient } = await import('@/lib/supabase/server')
+    const { scheduleZernioPost } = await import('@/lib/zernio/client')
+
+    const uploadPostRow = {
+      id: 'post-1',
+      state: 'draft',
+      position: 0,
+      source: {
+        kind: 'upload',
+        mediaUrl: 'https://storage.supabase.co/image.jpg',
+        mediaType: 'image',
+        userPrompt: 'Pasen',
+      },
+      crop_data: { x: 0, y: 0, scale: 1 },
+      caption: mockCaption,
+      scheduled_at: null,
+      is_person: false,
+    }
+    const updatedRow = { ...uploadPostRow, state: 'locked', scheduled_at: '2026-04-24T10:00:00' }
+
+    vi.mocked(createClient).mockResolvedValue(makeSupabaseMock(uploadPostRow, updatedRow) as never)
+    vi.mocked(scheduleZernioPost).mockResolvedValue(undefined)
+
+    const { POST } = await import('../route')
+    const res = await POST(
+      makeRequest({ scheduledAt: '2026-04-24T10:00:00' }),
+      { params: Promise.resolve({ id: 'post-1' }) },
+    )
+
+    expect(res.status).toBe(200)
+    expect(vi.mocked(scheduleZernioPost)).toHaveBeenCalledWith(
+      expect.objectContaining({ imageUrl: 'https://storage.supabase.co/image.jpg' }),
+    )
+  })
 })
