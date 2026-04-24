@@ -1,4 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { scheduleZernioPost } from '@/lib/zernio/client'
+import { assembleCaption } from '@/lib/zernio/format'
+import type { Post, PostState, PostSource, CropData, PostCaption } from '@/lib/types'
+
+function mapPost(row: Record<string, unknown>): Post {
+  return {
+    id: row.id as string,
+    state: row.state as PostState,
+    position: row.position as number,
+    source: (row.source as PostSource) ?? null,
+    cropData: (row.crop_data as CropData) ?? { x: 0, y: 0, scale: 1 },
+    caption: (row.caption as PostCaption) ?? null,
+    scheduledAt: (row.scheduled_at as string) ?? null,
+    isPerson: Boolean(row.is_person),
+  }
+}
 
 export async function POST(
   request: NextRequest,
@@ -6,7 +23,43 @@ export async function POST(
 ) {
   const { id } = await params
   const { scheduledAt } = await request.json() as { scheduledAt: string }
-  // Real implementation: POST to Zernio API
-  console.log(`[stub] Post ${id} queued for Zernio at ${scheduledAt}`)
-  return NextResponse.json({ queued: true, id, scheduledAt })
+  const supabase = await createClient()
+
+  const { data: postRow, error: postError } = await supabase
+    .from('posts')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (postError) return NextResponse.json({ error: postError.message }, { status: 500 })
+
+  const caption = postRow.caption as PostCaption | null
+  if (!caption) {
+    return NextResponse.json({ error: 'Geen caption beschikbaar' }, { status: 400 })
+  }
+
+  const source = postRow.source as PostSource | null
+  let imageUrl: string | undefined
+  if (source?.kind === 'shopify') {
+    imageUrl = source.images[source.selectedImageIndex] ?? source.images[0]
+  }
+
+  const content = assembleCaption(caption)
+
+  try {
+    await scheduleZernioPost({ content, scheduledFor: scheduledAt, imageUrl })
+  } catch (err) {
+    console.error('[publish] Zernio error:', err)
+    return NextResponse.json({ error: 'Inplannen bij Zernio mislukt' }, { status: 500 })
+  }
+
+  const { data, error: updateError } = await supabase
+    .from('posts')
+    .update({ state: 'locked', scheduled_at: scheduledAt })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
+  return NextResponse.json(mapPost(data))
 }
