@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import type Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { createAnthropicClient } from '@/lib/anthropic/client'
-import { buildSystemPrompt, buildUserContent, parseCaptionResponse } from '@/lib/anthropic/caption'
-import type { Post, PostState, PostSource, CropData, PostCaption, PostSourceShopify } from '@/lib/types'
+import { buildSystemPrompt, buildUserContent, buildUploadUserContent, parseCaptionResponse } from '@/lib/anthropic/caption'
+import type { Post, PostState, PostSource, CropData, PostCaption } from '@/lib/types'
 
 function mapPost(row: Record<string, unknown>): Post {
   return {
@@ -35,9 +35,9 @@ export async function POST(
 
   if (postError) return NextResponse.json({ error: postError.message }, { status: 500 })
 
-  const source = postRow.source as PostSourceShopify | null
-  if (source?.kind !== 'shopify') {
-    return NextResponse.json({ error: 'Only Shopify posts supported' }, { status: 400 })
+  const source = postRow.source as PostSource | null
+  if (!source || (source.kind !== 'shopify' && source.kind !== 'upload')) {
+    return NextResponse.json({ error: 'Unsupported post source' }, { status: 400 })
   }
 
   // Haal tone of voice op
@@ -63,7 +63,10 @@ export async function POST(
       messages: [
         {
           role: 'user',
-          content: buildUserContent(source) as Anthropic.ContentBlockParam[],
+          content: (source.kind === 'shopify'
+            ? buildUserContent(source)
+            : buildUploadUserContent(source)
+          ) as Anthropic.ContentBlockParam[],
         },
       ],
     })
