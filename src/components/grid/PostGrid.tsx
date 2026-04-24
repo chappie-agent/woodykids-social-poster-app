@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import {
   DndContext, DragEndEvent, DragStartEvent,
   PointerSensor, useSensor, useSensors,
@@ -11,6 +11,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useRouter } from 'next/navigation'
 import { useGridStore } from '@/lib/store/gridStore'
 import { PostCell } from './PostCell'
+import { ProductPicker } from '@/components/editor/ProductPicker'
 import type { Post } from '@/lib/types'
 
 function SortableCell({ post }: { post: Post }) {
@@ -50,7 +51,8 @@ function SortableCell({ post }: { post: Post }) {
 }
 
 export function PostGrid() {
-  const { posts, setOrder, setDragging } = useGridStore()
+  const { posts, setOrder, setDragging, updatePost } = useGridStore()
+  const [pickerPosition, setPickerPosition] = useState<number | null>(null)
 
   const sorted = [...posts].sort((a, b) => a.position - b.position)
   const draggable = sorted.filter(p => p.state === 'draft' || p.state === 'conflict')
@@ -73,7 +75,6 @@ export function PostGrid() {
     if (oldIndex === -1 || newIndex === -1) return
     const reordered = arrayMove(draggable, oldIndex, newIndex)
 
-    // Merge reordered drafts back into the full sorted list (locked/empty keep their slots)
     let draftCursor = 0
     const merged = sorted.map(p => {
       if (p.state === 'draft' || p.state === 'conflict') return reordered[draftCursor++]
@@ -91,21 +92,42 @@ export function PostGrid() {
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <SortableContext items={draggable.map(p => p.id)} strategy={rectSortingStrategy}>
-        <div className="grid grid-cols-3 gap-[1px] bg-[#2a2a2a]">
-          {sorted.map(post =>
-            post.state === 'draft' || post.state === 'conflict'
-              ? <SortableCell key={post.id} post={post} />
-              : <div key={post.id}><PostCell post={post} /></div>
-          )}
-        </div>
-      </SortableContext>
-    </DndContext>
+    <>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={draggable.map(p => p.id)} strategy={rectSortingStrategy}>
+          <div className="grid grid-cols-3 gap-[1px] bg-[#2a2a2a]">
+            {sorted.map(post =>
+              post.state === 'draft' || post.state === 'conflict'
+                ? <SortableCell key={post.id} post={post} />
+                : (
+                  <div key={post.id}>
+                    <PostCell
+                      post={post}
+                      onTap={post.state === 'empty'
+                        ? () => setPickerPosition(post.position)
+                        : undefined}
+                    />
+                  </div>
+                )
+            )}
+          </div>
+        </SortableContext>
+      </DndContext>
+
+      <ProductPicker
+        open={pickerPosition !== null}
+        position={pickerPosition ?? 0}
+        onClose={() => setPickerPosition(null)}
+        onCreated={(newPost) => {
+          updatePost(newPost.id, newPost)
+          setPickerPosition(null)
+        }}
+      />
+    </>
   )
 }
