@@ -107,4 +107,19 @@ describe('POST /api/posts/[id]/generate-caption', () => {
 
     expect(res.status).toBe(400)
   })
+
+  it('returns 400 for non-null unknown source kind', async () => {
+    const { createClient } = await import('@/lib/supabase/server')
+
+    vi.mocked(createClient).mockResolvedValue(makeSupabaseMock({
+      id: 'post-1', state: 'draft', position: 0, is_person: false, crop_data: { x: 0, y: 0, scale: 1 },
+      caption: null, scheduled_at: null,
+      source: { kind: 'manual' },
+    }) as never)
+
+    const { POST } = await import('../route')
+    const res = await POST(makeRequest(), { params: Promise.resolve({ id: 'post-1' }) })
+
+    expect(res.status).toBe(400)
+  })
 })
