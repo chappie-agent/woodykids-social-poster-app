@@ -23,31 +23,46 @@ export function CaptionBlock({ label, block, onChange }: Props) {
     <div className="space-y-2">
       <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">{label}</p>
 
-      {/* Variant selector */}
-      <div className="flex gap-1.5">
+      <div className="space-y-1.5">
         {([0, 1, 2] as const).map(i => (
-          <button
+          <div
             key={i}
             onClick={() => selectVariant(i)}
             className={[
-              'text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors',
+              'rounded-lg border px-3 py-2 cursor-pointer transition-colors',
               block.selected === i
-                ? 'bg-orange-500 text-white border-orange-500'
-                : 'bg-white text-gray-500 border-gray-200',
+                ? 'border-orange-400 bg-orange-50 ring-1 ring-orange-300'
+                : 'border-gray-200 bg-gray-50 hover:border-gray-300',
             ].join(' ')}
           >
-            {i + 1}
-          </button>
+            <div className="flex items-start gap-2">
+              <span className={[
+                'text-[9px] font-bold mt-0.5 shrink-0',
+                block.selected === i ? 'text-orange-500' : 'text-gray-400',
+              ].join(' ')}>
+                {i + 1}
+              </span>
+              {block.selected === i ? (
+                <textarea
+                  autoFocus
+                  value={block.variants[i]}
+                  onChange={e => editText(e.target.value)}
+                  onClick={e => e.stopPropagation()}
+                  rows={1}
+                  className="w-full text-[12px] text-gray-800 bg-transparent resize-none focus:outline-none leading-relaxed overflow-hidden"
+                  style={{ height: 'auto' }}
+                  ref={el => { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px' } }}
+                  onInput={e => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px' }}
+                />
+              ) : (
+                <p className="text-[12px] text-gray-500 leading-relaxed">
+                  {block.variants[i]}
+                </p>
+              )}
+            </div>
+          </div>
         ))}
       </div>
-
-      {/* Editable text */}
-      <textarea
-        value={block.variants[block.selected]}
-        onChange={e => editText(e.target.value)}
-        rows={2}
-        className="w-full text-[12px] text-gray-800 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-orange-300 leading-relaxed"
-      />
     </div>
   )
 }
