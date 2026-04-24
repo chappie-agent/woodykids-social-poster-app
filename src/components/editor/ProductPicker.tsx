@@ -57,9 +57,9 @@ export function ProductPicker({ open, position, onClose, onCreated }: Props) {
       })
       if (!res.ok) throw new Error(`${res.status}`)
       const post = await res.json() as Post
+      onCreated(post)
       // Fire-and-forget: caption genereert terwijl gebruiker naar de editor navigeert
       fetch(`/api/posts/${post.id}/generate-caption`, { method: 'POST' }).catch(() => {})
-      onCreated(post)
       onClose()
     } catch {
       setCreateError('Toevoegen mislukt. Probeer opnieuw.')

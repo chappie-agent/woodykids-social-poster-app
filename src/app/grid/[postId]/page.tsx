@@ -50,7 +50,7 @@ function EditorContent({ postId }: { postId: string }) {
         const updated: Post = await res.json()
         if (updated.caption !== null) {
           clearInterval(pollingRef.current!)
-          updatePost(post.id, updated)
+          useGridStore.getState().updatePost(post.id, updated)
           setIsGenerating(false)
         }
       } catch {
@@ -61,7 +61,7 @@ function EditorContent({ postId }: { postId: string }) {
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current)
     }
-  }, [post?.id, post?.caption === null])
+  }, [post?.id, post?.caption])
 
   async function handleRegenerate() {
     if (!post) return
