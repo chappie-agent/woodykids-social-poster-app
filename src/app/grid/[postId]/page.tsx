@@ -61,7 +61,7 @@ function EditorContent({ postId }: { postId: string }) {
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current)
     }
-  }, [post?.id, post?.caption])
+  }, [post?.id, post?.caption === null])
 
   async function handleRegenerate() {
     if (!post) return
