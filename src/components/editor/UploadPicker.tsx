@@ -25,12 +25,12 @@ export function UploadPicker({ open, position, onClose, onCreated }: Props) {
     if (!f) return
     setFile(f)
     setError(null)
-    setPreview(URL.createObjectURL(f))
+    setPreview(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(f) })
   }
 
   function reset() {
+    setPreview(prev => { if (prev) URL.revokeObjectURL(prev); return null })
     setFile(null)
-    setPreview(null)
     setUserPrompt('')
     setError(null)
     setUploading(false)
@@ -42,11 +42,11 @@ export function UploadPicker({ open, position, onClose, onCreated }: Props) {
     setUploading(true)
     setError(null)
 
-    try {
-      const supabase = createClient()
-      const ext = file.name.split('.').pop() ?? 'bin'
-      const path = `${crypto.randomUUID()}.${ext}`
+    const supabase = createClient()
+    const ext = file.name.split('.').pop() ?? 'bin'
+    const path = `${crypto.randomUUID()}.${ext}`
 
+    try {
       const { error: uploadError } = await supabase.storage
         .from('post-media')
         .upload(path, file)
@@ -63,7 +63,10 @@ export function UploadPicker({ open, position, onClose, onCreated }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mediaUrl: publicUrl, mediaType, userPrompt, position }),
       })
-      if (!res.ok) throw new Error(`${res.status}`)
+      if (!res.ok) {
+        supabase.storage.from('post-media').remove([path]).catch(() => {})
+        throw new Error(`${res.status}`)
+      }
       const post = await res.json() as Post
 
       fetch(`/api/posts/${post.id}/generate-caption`, { method: 'POST' }).catch(() => {})
@@ -109,7 +112,11 @@ export function UploadPicker({ open, position, onClose, onCreated }: Props) {
               )}
               <button
                 type="button"
-                onClick={() => { setFile(null); setPreview(null); if (inputRef.current) inputRef.current.value = '' }}
+                onClick={() => {
+                  setPreview(prev => { if (prev) URL.revokeObjectURL(prev); return null })
+                  setFile(null)
+                  if (inputRef.current) inputRef.current.value = ''
+                }}
                 className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full"
               >
                 Wijzig
