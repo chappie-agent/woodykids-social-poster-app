@@ -1,5 +1,3 @@
-// src/lib/types.ts
-
 export type ShopifyVariant = {
   id: string
   title: string   // bijv. "Naturel / L"
@@ -24,7 +22,7 @@ export type PostSourceShopify = {
   productId: string
   productTitle: string
   images: string[]
-  variants?: ShopifyVariant[]   // optional: niet aanwezig in oude fixture data
+  variants?: ShopifyVariant[]   // set by create-product; absent in legacy fixture posts
   selectedImageIndex: number
 }
 
