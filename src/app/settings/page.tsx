@@ -44,31 +44,31 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#FFF8F0]">
-      <header className="flex items-center gap-2 px-3 py-3 border-b border-orange-100 bg-white/80 backdrop-blur-sm sticky top-0">
-        <button onClick={() => router.push('/grid')} className="text-orange-500">
+    <main className="min-h-screen bg-woody-beige">
+      <header className="flex items-center gap-2 px-3 py-3 sticky top-0 bg-woody-bordeaux">
+        <button onClick={() => router.push('/grid')} className="text-woody-cream">
           <ChevronLeft size={20} />
         </button>
-        <span className="text-base font-extrabold text-orange-900">Instellingen</span>
+        <span className="text-base font-extrabold text-woody-cream">Instellingen</span>
       </header>
 
       <div className="px-4 py-6 space-y-8 max-w-xl mx-auto">
         {/* Tone of voice */}
         <section className="space-y-3">
-          <Label className="text-sm font-bold text-orange-900">Tone of voice</Label>
-          <p className="text-xs text-gray-500">
+          <Label className="text-sm font-bold text-woody-bordeaux">Tone of voice</Label>
+          <p className="text-xs text-woody-brown/60">
             AI gebruikt deze tekst bij elke post-generatie. Pas aan als de toon moet veranderen.
           </p>
           <textarea
             value={content}
             onChange={e => setContent(e.target.value)}
             rows={14}
-            className="w-full text-[12px] text-gray-800 bg-white border border-orange-200 rounded-xl px-3 py-3 resize-none focus:outline-none focus:ring-1 focus:ring-orange-300 leading-relaxed"
+            className="w-full text-[12px] text-woody-brown bg-white border border-woody-taupe/40 rounded-xl px-3 py-3 resize-none focus:outline-none focus:ring-1 focus:ring-woody-bordeaux/30 leading-relaxed"
           />
           <Button
             onClick={handleSave}
             disabled={saving}
-            className="bg-orange-500 hover:bg-orange-600 text-white text-sm"
+            className="bg-woody-bordeaux hover:bg-woody-bordeaux/90 text-woody-cream text-sm"
           >
             {saving ? 'Opslaan...' : 'Opslaan'}
           </Button>
@@ -78,7 +78,7 @@ export default function SettingsPage() {
 
         {/* Account */}
         <section className="space-y-3">
-          <p className="text-sm font-bold text-orange-900">Account</p>
+          <p className="text-sm font-bold text-woody-bordeaux">Account</p>
           <p className="text-xs text-gray-500">{email}</p>
           <Button
             onClick={handleLogout}

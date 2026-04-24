@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 import { motion, useMotionValue } from 'framer-motion'
 import { useGesture } from '@use-gesture/react'
 import type { CropData } from '@/lib/types'
@@ -12,11 +12,20 @@ type Props = {
 }
 
 export function PhotoCrop({ imageUrl, cropData, onChange }: Props) {
-  const x = useMotionValue(cropData.x)
-  const y = useMotionValue(cropData.y)
+  // Motion values are in pixels for smooth animation; cropData x/y are fractions (0..1)
+  const x = useMotionValue(0)
+  const y = useMotionValue(0)
   const scale = useMotionValue(cropData.scale)
   const containerRef = useRef<HTMLDivElement>(null)
   const sliderRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const { width, height } = el.getBoundingClientRect()
+    x.set(cropData.x * width)
+    y.set(cropData.y * height)
+  }, [])
 
   const clampScale = (s: number) => Math.max(1, Math.min(4, s))
 
@@ -25,21 +34,28 @@ export function PhotoCrop({ imageUrl, cropData, onChange }: Props) {
     if (sliderRef.current) sliderRef.current.value = String(s)
   }
 
+  function saveCrop(overrideScale?: number) {
+    const el = containerRef.current
+    if (!el) return
+    const { width, height } = el.getBoundingClientRect()
+    onChange({
+      x: x.get() / width,
+      y: y.get() / height,
+      scale: overrideScale ?? scale.get(),
+    })
+  }
+
   const bind = useGesture(
     {
       onDrag: ({ offset: [ox, oy] }) => {
         x.set(ox)
         y.set(oy)
       },
-      onDragEnd: () => {
-        onChange({ x: x.get(), y: y.get(), scale: scale.get() })
-      },
+      onDragEnd: () => saveCrop(),
       onPinch: ({ offset: [s] }) => {
         setScale(clampScale(s))
       },
-      onPinchEnd: () => {
-        onChange({ x: x.get(), y: y.get(), scale: scale.get() })
-      },
+      onPinchEnd: () => saveCrop(),
     },
     {
       drag: {
@@ -57,7 +73,7 @@ export function PhotoCrop({ imageUrl, cropData, onChange }: Props) {
       <div
         ref={containerRef}
         className="w-full overflow-hidden bg-black cursor-grab active:cursor-grabbing select-none"
-        style={{ aspectRatio: '4/5', touchAction: 'pan-x pan-y' }}
+        style={{ aspectRatio: '4/5', touchAction: 'none' }}
         {...bind()}
       >
         <motion.img
@@ -75,7 +91,7 @@ export function PhotoCrop({ imageUrl, cropData, onChange }: Props) {
           onClick={() => {
             const next = clampScale(scale.get() - 0.1)
             setScale(next)
-            onChange({ x: x.get(), y: y.get(), scale: next })
+            saveCrop(next)
           }}
         >
           −
@@ -91,7 +107,7 @@ export function PhotoCrop({ imageUrl, cropData, onChange }: Props) {
           onChange={(e) => {
             const val = parseFloat(e.target.value)
             scale.set(val)
-            onChange({ x: x.get(), y: y.get(), scale: val })
+            saveCrop(val)
           }}
         />
         <button
@@ -100,7 +116,7 @@ export function PhotoCrop({ imageUrl, cropData, onChange }: Props) {
           onClick={() => {
             const next = clampScale(scale.get() + 0.1)
             setScale(next)
-            onChange({ x: x.get(), y: y.get(), scale: next })
+            saveCrop(next)
           }}
         >
           +

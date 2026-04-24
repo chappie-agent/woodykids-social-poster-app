@@ -54,13 +54,13 @@ export function ScheduleSheet({ open, onClose, onConfirm, current }: Props) {
               type="time"
               value={time}
               onChange={e => setTime(e.target.value)}
-              className="border-orange-200 focus-visible:ring-orange-300"
+              className="border-woody-taupe/40 focus-visible:ring-woody-bordeaux/30"
             />
           </div>
           <Button
             onClick={handleConfirm}
             disabled={!date}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+            className="w-full bg-woody-bordeaux hover:bg-woody-bordeaux/90 text-woody-cream"
           >
             Inplannen →
           </Button>

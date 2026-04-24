@@ -21,8 +21,8 @@ export function PostCell({ post, isDragging, onTap }: Props) {
 
   if (post.state === 'empty') {
     return (
-      <div className="aspect-[4/5] rounded-md border-[1.5px] border-dashed border-gray-200 bg-gray-50 flex items-center justify-center">
-        <span className="text-[9px] font-bold text-gray-300 uppercase tracking-wider">leeg</span>
+      <div className="aspect-[4/5] border-[1.5px] border-dashed border-woody-taupe/50 bg-woody-beige flex items-center justify-center">
+        <span className="text-[9px] font-bold text-woody-taupe uppercase tracking-wider">leeg</span>
       </div>
     )
   }
@@ -33,20 +33,24 @@ export function PostCell({ post, isDragging, onTap }: Props) {
   return (
     <div
       className={[
-        'aspect-[4/5] rounded-md relative overflow-hidden select-none',
-        isLocked ? (post.isPerson ? 'bg-violet-200' : 'bg-blue-200') : (post.isPerson ? 'bg-yellow-200' : 'bg-orange-200'),
-        isConflict ? 'ring-[2.5px] ring-amber-400 ring-offset-0' : '',
+        'aspect-[4/5] relative overflow-hidden select-none',
+        isLocked ? (post.isPerson ? 'bg-woody-mint/80' : 'bg-woody-mint') : (post.isPerson ? 'bg-woody-taupe/50' : 'bg-woody-taupe/70'),
+        isConflict ? 'ring-[2.5px] ring-woody-bordeaux ring-offset-0' : '',
         isDragging ? 'opacity-40' : '',
         !isLocked ? 'cursor-grab active:cursor-grabbing' : 'cursor-not-allowed',
       ].join(' ')}
       onClick={onTap}
     >
-      {/* Background image */}
+      {/* Background image with crop applied */}
       {imageUrl && (
         <img
           src={imageUrl}
           alt={post.source?.kind === 'shopify' ? post.source.productTitle : 'Eigen upload'}
           className="absolute inset-0 w-full h-full object-cover"
+          style={{
+            transform: `translate(${post.cropData.x * 100}%, ${post.cropData.y * 100}%) scale(${post.cropData.scale})`,
+            transformOrigin: 'center',
+          }}
           draggable={false}
         />
       )}
@@ -56,19 +60,19 @@ export function PostCell({ post, isDragging, onTap }: Props) {
 
       {/* Conflict pulse ring — CSS animation via Tailwind arbitrary */}
       {isConflict && (
-        <span className="absolute inset-[-3px] rounded-[7px] border-[2.5px] border-amber-400 animate-pulse pointer-events-none" />
+        <span className="absolute inset-[-3px] rounded-[7px] border-[2.5px] border-woody-bordeaux animate-pulse pointer-events-none" />
       )}
 
       {/* ! badge for conflict */}
       {isConflict && (
-        <div className="absolute top-[-5px] left-[-5px] z-10 w-4 h-4 rounded-full bg-amber-400 flex items-center justify-center shadow">
+        <div className="absolute top-[-5px] left-[-5px] z-10 w-4 h-4 rounded-full bg-woody-bordeaux flex items-center justify-center shadow">
           <span className="text-[9px] font-black text-white">!</span>
         </div>
       )}
 
       {/* Draft chip */}
       {(post.state === 'draft' || post.state === 'conflict') && (
-        <div className="absolute top-1 left-1 bg-white/80 rounded-[3px] px-1 py-0.5 text-[7px] font-bold text-orange-500">
+        <div className="absolute top-1 left-1 bg-woody-bordeaux/85 rounded-[3px] px-1 py-0.5 text-[7px] font-bold text-woody-cream">
           concept
         </div>
       )}
@@ -80,7 +84,7 @@ export function PostCell({ post, isDragging, onTap }: Props) {
 
       {/* Date badge for locked */}
       {isLocked && post.scheduledAt && (
-        <div className="absolute bottom-1 left-1 right-1 bg-white/85 rounded-[3px] px-1 py-0.5 text-[7px] font-bold text-blue-800 text-center truncate">
+        <div className="absolute bottom-1 left-1 right-1 bg-woody-cream/90 rounded-[3px] px-1 py-0.5 text-[7px] font-bold text-woody-bordeaux text-center truncate">
           {formatDate(post.scheduledAt)}
         </div>
       )}

@@ -31,14 +31,14 @@ export function CaptionBlock({ label, block, onChange }: Props) {
             className={[
               'rounded-lg border px-3 py-2 cursor-pointer transition-colors',
               block.selected === i
-                ? 'border-orange-400 bg-orange-50 ring-1 ring-orange-300'
-                : 'border-gray-200 bg-gray-50 hover:border-gray-300',
+                ? 'border-woody-bordeaux bg-woody-beige ring-1 ring-woody-bordeaux/30'
+                : 'border-woody-taupe/30 bg-woody-beige/50 hover:border-woody-taupe/60',
             ].join(' ')}
           >
             <div className="flex items-start gap-2">
               <span className={[
                 'text-[9px] font-bold mt-0.5 shrink-0',
-                block.selected === i ? 'text-orange-500' : 'text-gray-400',
+                block.selected === i ? 'text-woody-bordeaux' : 'text-woody-taupe',
               ].join(' ')}>
                 {i + 1}
               </span>

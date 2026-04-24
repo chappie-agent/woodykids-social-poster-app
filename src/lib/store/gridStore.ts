@@ -18,7 +18,13 @@ export const useGridStore = create<GridStore>((set, get) => ({
   draggingId: null,
 
   setPosts: (posts) => {
-    set({ posts })
+    const seen = new Set<string>()
+    const unique = posts.filter(p => {
+      if (seen.has(p.id)) return false
+      seen.add(p.id)
+      return true
+    })
+    set({ posts: unique })
     get().detectConflicts()
   },
 

@@ -64,17 +64,17 @@ function EditorContent({ postId }: { postId: string }) {
   }
 
   return (
-    <main className="min-h-screen bg-white flex flex-col">
+    <main className="min-h-screen bg-woody-cream flex flex-col">
       {/* Header */}
-      <header className="flex items-center justify-between px-3 py-2 border-b border-gray-100 sticky top-0 z-10 bg-white">
-        <button onClick={() => router.push('/grid')} className="flex items-center gap-1 text-orange-500 text-sm font-semibold">
+      <header className="flex items-center justify-between px-3 py-2 border-b border-woody-taupe/20 sticky top-0 z-10 bg-woody-bordeaux">
+        <button onClick={() => router.push('/grid')} className="flex items-center gap-1 text-woody-cream text-sm font-semibold">
           <ChevronLeft size={18} />
           Terug
         </button>
-        <span className="text-xs font-semibold text-gray-500 truncate max-w-[140px]">{title}</span>
+        <span className="text-xs font-semibold text-woody-cream/70 truncate max-w-[140px]">{title}</span>
         <button
           onClick={() => setScheduleOpen(true)}
-          className="text-xs font-bold text-white bg-orange-500 px-3 py-1.5 rounded-full"
+          className="text-xs font-bold text-woody-bordeaux bg-woody-cream px-3 py-1.5 rounded-full"
         >
           {saving ? '...' : 'Inplannen →'}
         </button>

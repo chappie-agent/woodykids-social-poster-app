@@ -31,9 +31,11 @@ export function FillButton() {
       })
       const newPosts: Post[] = await res.json()
 
-      // Replace empty slots with new posts, append rest
-      const withoutEmpties = posts.filter(p => p.state !== 'empty')
-      const toFill = emptyPosts.slice(0, newPosts.length)
+      // Read current state after async fetch to avoid stale-closure duplicates
+      const currentPosts = useGridStore.getState().posts
+      const currentEmpties = currentPosts.filter(p => p.state === 'empty')
+      const withoutEmpties = currentPosts.filter(p => p.state !== 'empty')
+      const toFill = currentEmpties.slice(0, newPosts.length)
       const filled = newPosts.map((np, i) => ({ ...np, position: toFill[i]?.position ?? np.position }))
       const remaining = newPosts.slice(toFill.length)
 
@@ -51,7 +53,7 @@ export function FillButton() {
       onClick={handleFill}
       disabled={loading}
       size="sm"
-      className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-full px-3 h-7"
+      className="bg-woody-cream hover:bg-woody-beige text-woody-bordeaux text-xs font-bold rounded-full px-3 h-7"
     >
       {loading ? '...' : `✨ Vul aan tot 9`}
     </Button>

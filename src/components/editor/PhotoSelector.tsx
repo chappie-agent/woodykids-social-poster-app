@@ -16,7 +16,7 @@ export function PhotoSelector({ images, selectedIndex, onChange }: Props) {
             onClick={() => onChange(i)}
             className={[
               'flex-shrink-0 w-12 h-16 rounded overflow-hidden border-2 transition-all',
-              i === selectedIndex ? 'border-orange-500 opacity-100' : 'border-transparent opacity-60',
+              i === selectedIndex ? 'border-woody-bordeaux opacity-100' : 'border-transparent opacity-60',
             ].join(' ')}
           >
             <img src={url} alt={`Foto ${i + 1}`} className="w-full h-full object-cover" />

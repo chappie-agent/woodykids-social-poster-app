@@ -1,13 +1,13 @@
 'use client'
 
+import { useRef } from 'react'
 import {
   DndContext, DragEndEvent, DragStartEvent,
-  MouseSensor, TouchSensor, useSensor, useSensors,
+  PointerSensor, useSensor, useSensors,
   closestCenter,
 } from '@dnd-kit/core'
-import { SortableContext, rectSortingStrategy, useSortable } from '@dnd-kit/sortable'
+import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useGridStore } from '@/lib/store/gridStore'
 import { PostCell } from './PostCell'
@@ -17,36 +17,35 @@ function SortableCell({ post }: { post: Post }) {
   const router = useRouter()
   const { draggingId } = useGridStore()
   const isDragging = draggingId === post.id
+  const prevDraggingId = useRef<string | null>(null)
+  const wasDragged = useRef(false)
 
-  const {
-    attributes, listeners, setNodeRef, transform, transition,
-  } = useSortable({
-    id: post.id,
-    disabled: post.state === 'locked' || post.state === 'empty',
-  })
+  if (prevDraggingId.current === post.id && draggingId !== post.id) {
+    wasDragged.current = true
+  }
+  prevDraggingId.current = draggingId
+
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: post.id })
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 10 : 'auto' as const,
+    touchAction: 'none' as const,
   }
 
   function handleTap() {
-    if (post.state === 'draft' || post.state === 'conflict') {
-      router.push(`/grid/${post.id}`)
+    if (wasDragged.current) {
+      wasDragged.current = false
+      return
     }
+    router.push(`/grid/${post.id}`)
   }
 
   return (
-    <motion.div
-      layout
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-    >
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <PostCell post={post} isDragging={isDragging} onTap={handleTap} />
-    </motion.div>
+    </div>
   )
 }
 
@@ -54,36 +53,36 @@ export function PostGrid() {
   const { posts, setOrder, setDragging } = useGridStore()
 
   const sorted = [...posts].sort((a, b) => a.position - b.position)
+  const draggable = sorted.filter(p => p.state === 'draft' || p.state === 'conflict')
 
   const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 500, tolerance: 5 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   )
 
   function handleDragStart(event: DragStartEvent) {
     setDragging(event.active.id as string)
   }
 
-  async function handleDragEnd(event: DragEndEvent) {
+  function handleDragEnd(event: DragEndEvent) {
     setDragging(null)
     const { active, over } = event
     if (!over || active.id === over.id) return
 
-    const oldIndex = sorted.findIndex(p => p.id === active.id)
-    const newIndex = sorted.findIndex(p => p.id === over.id)
+    const oldIndex = draggable.findIndex(p => p.id === active.id)
+    const newIndex = draggable.findIndex(p => p.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+    const reordered = arrayMove(draggable, oldIndex, newIndex)
 
-    // Locked posts are not moveable — but drafts can be inserted around them
-    const overPost = sorted[newIndex]
-    if (overPost.state === 'locked' || overPost.state === 'empty') return
+    // Merge reordered drafts back into the full sorted list (locked/empty keep their slots)
+    let draftCursor = 0
+    const merged = sorted.map(p => {
+      if (p.state === 'draft' || p.state === 'conflict') return reordered[draftCursor++]
+      return p
+    })
 
-    const newOrder = [...sorted]
-    const [moved] = newOrder.splice(oldIndex, 1)
-    newOrder.splice(newIndex, 0, moved)
-
-    const ids = newOrder.map(p => p.id)
+    const ids = merged.map(p => p.id)
     setOrder(ids)
 
-    // Persist order to API (fire and forget in MVP)
     fetch('/api/grid/order', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -98,13 +97,13 @@ export function PostGrid() {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <SortableContext items={sorted.map(p => p.id)} strategy={rectSortingStrategy}>
-        <div className="grid grid-cols-3 gap-[3px] p-[3px]">
-          <AnimatePresence>
-            {sorted.map(post => (
-              <SortableCell key={post.id} post={post} />
-            ))}
-          </AnimatePresence>
+      <SortableContext items={draggable.map(p => p.id)} strategy={rectSortingStrategy}>
+        <div className="grid grid-cols-3 gap-[1px] bg-[#2a2a2a]">
+          {sorted.map(post =>
+            post.state === 'draft' || post.state === 'conflict'
+              ? <SortableCell key={post.id} post={post} />
+              : <div key={post.id}><PostCell post={post} /></div>
+          )}
         </div>
       </SortableContext>
     </DndContext>

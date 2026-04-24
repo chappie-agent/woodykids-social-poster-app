@@ -11,28 +11,30 @@ import { FillButton } from '@/components/grid/FillButton'
 import type { Post } from '@/lib/types'
 
 export default function GridPage() {
-  const { setPosts } = useGridStore()
+  const { posts, setPosts } = useGridStore()
   const [conflictSheetOpen, setConflictSheetOpen] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(posts.length === 0)
 
   useEffect(() => {
+    // Only fetch on first load — store is the source of truth once populated
+    if (posts.length > 0) return
     fetch('/api/posts')
       .then(r => r.json())
-      .then((posts: Post[]) => {
-        setPosts(posts)
+      .then((fetched: Post[]) => {
+        setPosts(fetched)
         setLoading(false)
       })
-  }, [setPosts])
+  }, [])
 
   return (
-    <main className="min-h-screen bg-[#FFF8F0]">
+    <main className="min-h-screen bg-woody-beige">
       {/* Sticky header */}
-      <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm border-b border-orange-100">
+      <header className="sticky top-0 z-20 bg-woody-bordeaux">
         <div className="flex items-center justify-between px-3 py-2">
-          <span className="text-base font-extrabold text-orange-900">🪵 WoodyKids</span>
+          <span className="text-base font-extrabold text-woody-cream">WoodyKids</span>
           <div className="flex items-center gap-2">
             <FillButton />
-            <Link href="/settings" className="p-1 text-orange-400 hover:text-orange-600">
+            <Link href="/settings" className="p-1 text-woody-cream/70 hover:text-woody-cream">
               <Settings size={18} />
             </Link>
           </div>
@@ -42,7 +44,7 @@ export default function GridPage() {
 
       {/* Grid */}
       {loading ? (
-        <div className="flex items-center justify-center h-64 text-orange-300 text-sm">
+        <div className="flex items-center justify-center h-64 text-woody-taupe text-sm">
           Laden...
         </div>
       ) : (
