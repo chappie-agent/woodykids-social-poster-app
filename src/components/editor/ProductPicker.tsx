@@ -17,19 +17,25 @@ export function ProductPicker({ open, position, onClose, onCreated }: Props) {
   const [search, setSearch] = useState('')
   const [collectionId, setCollectionId] = useState('')
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
     setSearch('')
     setCollectionId('')
     setLoading(true)
+    setLoadError(null)
     Promise.all([
       fetch('/api/products').then(r => r.json()),
       fetch('/api/collections').then(r => r.json()),
     ]).then(([prods, cols]: [ShopifyProduct[], ShopifyCollection[]]) => {
       setProducts(prods)
       setCollections(cols)
+      setLoading(false)
+    }).catch(() => {
+      setLoadError('Producten laden mislukt. Probeer opnieuw.')
       setLoading(false)
     })
   }, [open])
@@ -42,15 +48,22 @@ export function ProductPicker({ open, position, onClose, onCreated }: Props) {
 
   async function handleSelect(product: ShopifyProduct) {
     setCreating(true)
-    const res = await fetch('/api/posts/create-product', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ productId: product.id, position }),
-    })
-    const post = await res.json() as Post
-    setCreating(false)
-    onCreated(post)
-    onClose()
+    setCreateError(null)
+    try {
+      const res = await fetch('/api/posts/create-product', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: product.id, position }),
+      })
+      if (!res.ok) throw new Error(`${res.status}`)
+      const post = await res.json() as Post
+      onCreated(post)
+      onClose()
+    } catch {
+      setCreateError('Toevoegen mislukt. Probeer opnieuw.')
+    } finally {
+      setCreating(false)
+    }
   }
 
   return (
@@ -80,9 +93,15 @@ export function ProductPicker({ open, position, onClose, onCreated }: Props) {
           </select>
         </div>
 
+        {createError && (
+          <p className="text-xs text-red-600 mb-2 shrink-0">{createError}</p>
+        )}
+
         <div className="flex-1 overflow-y-auto">
           {loading ? (
             <p className="text-center text-sm text-gray-400 mt-8">Laden...</p>
+          ) : loadError ? (
+            <p className="text-center text-sm text-red-500 mt-8">{loadError}</p>
           ) : filtered.length === 0 ? (
             <p className="text-center text-sm text-gray-400 mt-8">Geen producten gevonden</p>
           ) : (
