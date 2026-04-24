@@ -101,20 +101,22 @@ function EditorContent({ postId }: { postId: string }) {
 
   async function handleSchedule(isoDateTime: string) {
     setSaving(true)
-    updatePost(postId, { state: 'locked', scheduledAt: isoDateTime })
-    await fetch(`/api/posts/${postId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ state: 'locked', scheduledAt: isoDateTime }),
-    })
-    await fetch(`/api/posts/${postId}/publish`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scheduledAt: isoDateTime }),
-    })
-    setSaving(false)
-    toast.success('Ingepland voor Zernio 🎉')
-    router.push('/grid')
+    try {
+      const res = await fetch(`/api/posts/${postId}/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduledAt: isoDateTime }),
+      })
+      if (!res.ok) throw new Error('publish failed')
+      const updated: Post = await res.json()
+      updatePost(postId, updated)
+      toast.success('Ingepland voor Zernio 🎉')
+      router.push('/grid')
+    } catch {
+      setGenerateError('Inplannen mislukt. Probeer opnieuw.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
