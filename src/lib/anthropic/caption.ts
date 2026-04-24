@@ -67,11 +67,11 @@ export function buildUploadUserContent(source: PostSourceUpload): ContentBlock[]
   content.push({
     type: 'text',
     text: [
-      `Eigen post: ${source.userPrompt}`,
-      '',
       'Schrijf een Instagram-caption in drie losse secties (opener, middenstuk, afsluiter).',
       'Elke sectie heeft drie varianten die in toon licht van elkaar verschillen.',
       'Genereer ook vijf Nederlandse hashtags.',
+      '',
+      `Eigen post: ${source.userPrompt}`,
     ].join('\n'),
   })
 

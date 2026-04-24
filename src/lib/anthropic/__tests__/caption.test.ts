@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { buildSystemPrompt, buildUserContent, buildUploadUserContent, parseCaptionResponse } from '@/lib/anthropic/caption'
-import type { PostSourceShopify } from '@/lib/types'
-import type { PostSourceUpload } from '@/lib/types'
+import type { PostSourceShopify, PostSourceUpload } from '@/lib/types'
 
 const shopifySource: PostSourceShopify = {
   kind: 'shopify',
