@@ -11,7 +11,9 @@ import { CSS } from '@dnd-kit/utilities'
 import { useRouter } from 'next/navigation'
 import { useGridStore } from '@/lib/store/gridStore'
 import { PostCell } from './PostCell'
+import { SourcePicker } from '@/components/editor/SourcePicker'
 import { ProductPicker } from '@/components/editor/ProductPicker'
+import { UploadPicker } from '@/components/editor/UploadPicker'
 import type { Post } from '@/lib/types'
 
 function SortableCell({ post }: { post: Post }) {
@@ -19,7 +21,7 @@ function SortableCell({ post }: { post: Post }) {
   const { draggingId } = useGridStore()
   const isDragging = draggingId === post.id
   const prevDraggingId = useRef<string | null>(null)
-  const wasDragged = useRef(false)
+  const wasDragged = useRef<boolean>(false)
 
   if (prevDraggingId.current === post.id && draggingId !== post.id) {
     wasDragged.current = true
@@ -52,7 +54,9 @@ function SortableCell({ post }: { post: Post }) {
 
 export function PostGrid() {
   const { posts, setOrder, setDragging, updatePost } = useGridStore()
-  const [pickerPosition, setPickerPosition] = useState<number | null>(null)
+  const [sourcePickerPosition, setSourcePickerPosition] = useState<number | null>(null)
+  const [productPickerPosition, setProductPickerPosition] = useState<number | null>(null)
+  const [uploadPickerPosition, setUploadPickerPosition] = useState<number | null>(null)
 
   const sorted = [...posts].sort((a, b) => a.position - b.position)
   const draggable = sorted.filter(p => p.state === 'draft' || p.state === 'conflict')
@@ -91,6 +95,10 @@ export function PostGrid() {
     })
   }
 
+  function handleCreated(newPost: Post) {
+    updatePost(newPost.id, newPost)
+  }
+
   return (
     <>
       <DndContext
@@ -109,7 +117,7 @@ export function PostGrid() {
                     <PostCell
                       post={post}
                       onTap={post.state === 'empty'
-                        ? () => setPickerPosition(post.position)
+                        ? () => setSourcePickerPosition(post.position)
                         : undefined}
                     />
                   </div>
@@ -119,13 +127,36 @@ export function PostGrid() {
         </SortableContext>
       </DndContext>
 
+      <SourcePicker
+        open={sourcePickerPosition !== null}
+        onClose={() => setSourcePickerPosition(null)}
+        onChooseProduct={() => {
+          setProductPickerPosition(sourcePickerPosition)
+          setSourcePickerPosition(null)
+        }}
+        onChooseUpload={() => {
+          setUploadPickerPosition(sourcePickerPosition)
+          setSourcePickerPosition(null)
+        }}
+      />
+
       <ProductPicker
-        open={pickerPosition !== null}
-        position={pickerPosition ?? 0}
-        onClose={() => setPickerPosition(null)}
+        open={productPickerPosition !== null}
+        position={productPickerPosition ?? 0}
+        onClose={() => setProductPickerPosition(null)}
         onCreated={(newPost) => {
-          updatePost(newPost.id, newPost)
-          setPickerPosition(null)
+          handleCreated(newPost)
+          setProductPickerPosition(null)
+        }}
+      />
+
+      <UploadPicker
+        open={uploadPickerPosition !== null}
+        position={uploadPickerPosition ?? 0}
+        onClose={() => setUploadPickerPosition(null)}
+        onCreated={(newPost) => {
+          handleCreated(newPost)
+          setUploadPickerPosition(null)
         }}
       />
     </>
