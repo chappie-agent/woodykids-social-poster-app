@@ -1,22 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { Post } from '@/lib/types'
-import { randomUUID } from 'crypto'
+import { createClient } from '@/lib/supabase/server'
+import type { Post, PostState, PostSource, CropData, PostCaption, PostSourceUpload } from '@/lib/types'
+
+function mapPost(row: Record<string, unknown>): Post {
+  return {
+    id: row.id as string,
+    state: row.state as PostState,
+    position: row.position as number,
+    source: (row.source as PostSource) ?? null,
+    cropData: (row.crop_data as CropData) ?? { x: 0, y: 0, scale: 1 },
+    caption: (row.caption as PostCaption) ?? null,
+    scheduledAt: (row.scheduled_at as string) ?? null,
+    isPerson: Boolean(row.is_person),
+  }
+}
 
 export async function POST(request: NextRequest) {
   const { mediaUrl, mediaType, userPrompt, position } = await request.json() as {
-    mediaUrl: string; mediaType: 'image' | 'video'; userPrompt: string; position: number
+    mediaUrl: string
+    mediaType: 'image' | 'video'
+    userPrompt: string
+    position: number
   }
 
-  const post: Post = {
-    id: randomUUID(),
-    state: 'draft',
-    position,
-    isPerson: false,
-    source: { kind: 'upload', mediaUrl, mediaType, userPrompt },
-    cropData: { x: 0, y: 0, scale: 1 },
-    caption: null,
-    scheduledAt: null,
-  }
+  const source: PostSourceUpload = { kind: 'upload', mediaUrl, mediaType, userPrompt }
 
-  return NextResponse.json(post)
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data, error } = await supabase
+    .from('posts')
+    .update({
+      state: 'draft',
+      source,
+      crop_data: { x: 0, y: 0, scale: 1 },
+      caption: null,
+      scheduled_at: null,
+      is_person: false,
+      created_by: user?.id ?? null,
+    })
+    .eq('position', position)
+    .select()
+    .single()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json(mapPost(data))
 }
