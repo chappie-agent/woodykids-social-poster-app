@@ -131,11 +131,13 @@ export function PostGrid() {
         open={sourcePickerPosition !== null}
         onClose={() => setSourcePickerPosition(null)}
         onChooseProduct={() => {
-          setProductPickerPosition(sourcePickerPosition)
+          const pos = sourcePickerPosition
+          setProductPickerPosition(pos)
           setSourcePickerPosition(null)
         }}
         onChooseUpload={() => {
-          setUploadPickerPosition(sourcePickerPosition)
+          const pos = sourcePickerPosition
+          setUploadPickerPosition(pos)
           setSourcePickerPosition(null)
         }}
       />
