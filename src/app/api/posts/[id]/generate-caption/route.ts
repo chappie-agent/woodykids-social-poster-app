@@ -41,12 +41,15 @@ export async function POST(
   }
 
   // Haal tone of voice op
-  const { data: settings } = await supabase
+  const { data: settings, error: settingsError } = await supabase
     .from('settings')
     .select('tone_of_voice')
     .eq('id', 1)
     .single()
 
+  if (settingsError) {
+    console.warn('[generate-caption] Settings fetch failed, using empty tone:', settingsError.message)
+  }
   const toneOfVoice = settings?.tone_of_voice ?? ''
 
   // Roep Claude aan
@@ -65,6 +68,9 @@ export async function POST(
       ],
     })
     const block = response.content[0]
+    if (block.type !== 'text') {
+      console.warn('[generate-caption] Unexpected non-text block from Claude:', block.type)
+    }
     responseText = block.type === 'text' ? block.text : ''
   } catch (err) {
     console.error('[generate-caption] Anthropic error:', err)
