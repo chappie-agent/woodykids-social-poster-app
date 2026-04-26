@@ -1,7 +1,7 @@
 type ZernioPostInput = {
   content: string
   scheduledFor: string
-  imageUrl?: string
+  mediaUrls?: string[]
 }
 
 export async function scheduleZernioPost(input: ZernioPostInput): Promise<void> {
@@ -20,8 +20,8 @@ export async function scheduleZernioPost(input: ZernioPostInput): Promise<void> 
     scheduledFor: input.scheduledFor,
   }
 
-  if (input.imageUrl) {
-    body.media = [{ url: input.imageUrl }]
+  if (input.mediaUrls?.length) {
+    body.media = input.mediaUrls.map(url => ({ url }))
   }
 
   const controller = new AbortController()

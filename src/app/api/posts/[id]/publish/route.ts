@@ -50,17 +50,18 @@ export async function POST(
   }
 
   const source = postRow.source as PostSource | null
-  let imageUrl: string | undefined
+  let mediaUrls: string[] | undefined
   if (source?.kind === 'shopify') {
-    imageUrl = source.images[source.selectedImageIndices[0]] ?? source.images[0]
+    const urls = source.selectedImageIndices.map(i => source.images[i]).filter(Boolean) as string[]
+    if (urls.length) mediaUrls = urls
   } else if (source?.kind === 'upload') {
-    imageUrl = source.mediaUrls[0]
+    if (source.mediaUrls.length) mediaUrls = source.mediaUrls
   }
 
   const content = assembleCaption(caption)
 
   try {
-    await scheduleZernioPost({ content, scheduledFor: scheduledAt, imageUrl })
+    await scheduleZernioPost({ content, scheduledFor: scheduledAt, mediaUrls })
   } catch (err) {
     console.error('[publish] Zernio error:', err)
     return NextResponse.json({ error: 'Inplannen bij Zernio mislukt' }, { status: 500 })

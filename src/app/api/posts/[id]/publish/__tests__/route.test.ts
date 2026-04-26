@@ -79,6 +79,9 @@ describe('POST /api/posts/[id]/publish', () => {
     const body = await res.json()
     expect(body.state).toBe('locked')
     expect(body.scheduledAt).toBe('2026-04-24T10:00:00')
+    expect(vi.mocked(scheduleZernioPost)).toHaveBeenCalledWith(
+      expect.objectContaining({ mediaUrls: ['https://cdn.shopify.com/image.jpg'] }),
+    )
   })
 
   it('returns 400 when caption is null', async () => {
@@ -164,7 +167,7 @@ describe('POST /api/posts/[id]/publish', () => {
 
     expect(res.status).toBe(200)
     expect(vi.mocked(scheduleZernioPost)).toHaveBeenCalledWith(
-      expect.objectContaining({ imageUrl: 'https://storage.supabase.co/image.jpg' }),
+      expect.objectContaining({ mediaUrls: ['https://storage.supabase.co/image.jpg'] }),
     )
   })
 })

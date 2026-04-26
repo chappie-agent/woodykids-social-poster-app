@@ -16,7 +16,7 @@ describe('scheduleZernioPost', () => {
     await scheduleZernioPost({
       content: 'Test caption',
       scheduledFor: '2026-04-24T10:00:00',
-      imageUrl: 'https://cdn.shopify.com/image.jpg',
+      mediaUrls: ['https://cdn.shopify.com/image.jpg'],
     })
 
     expect(mockFetch).toHaveBeenCalledOnce()
@@ -30,7 +30,7 @@ describe('scheduleZernioPost', () => {
     expect(body.media).toEqual([{ url: 'https://cdn.shopify.com/image.jpg' }])
   })
 
-  it('omits media field when imageUrl is undefined', async () => {
+  it('omits media field when mediaUrls is undefined', async () => {
     const mockFetch = vi.fn().mockResolvedValue({ ok: true })
     vi.stubGlobal('fetch', mockFetch)
 
