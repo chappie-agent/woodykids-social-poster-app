@@ -84,9 +84,12 @@ export function buildUploadUserContent(source: PostSourceUpload): ContentBlock[]
 }
 
 export function parseCaptionResponse(text: string): PostCaption {
+  // Extract JSON: prefer content from a ```json code block, fall back to bare JSON
+  const codeBlock = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
+  const cleaned = (codeBlock ? codeBlock[1] : text).trim()
   let parsed: ClaudeOutput
   try {
-    parsed = JSON.parse(text) as ClaudeOutput
+    parsed = JSON.parse(cleaned) as ClaudeOutput
   } catch {
     throw new Error('Ongeldige JSON')
   }
