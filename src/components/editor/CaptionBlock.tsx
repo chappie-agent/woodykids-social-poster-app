@@ -5,22 +5,25 @@ import type { CaptionBlock as CaptionBlockType } from '@/lib/types'
 type Props = {
   label: string
   block: CaptionBlockType
+  disabled?: boolean
   onChange: (block: CaptionBlockType) => void
 }
 
-export function CaptionBlock({ label, block, onChange }: Props) {
+export function CaptionBlock({ label, block, disabled, onChange }: Props) {
   function selectVariant(i: 0 | 1 | 2) {
+    if (disabled) return
     onChange({ ...block, selected: i })
   }
 
   function editText(text: string) {
+    if (disabled) return
     const variants = [...block.variants] as [string, string, string]
     variants[block.selected] = text
     onChange({ ...block, variants })
   }
 
   return (
-    <div className="space-y-2">
+    <div className={['space-y-2', disabled ? 'opacity-60 pointer-events-none' : ''].join(' ')}>
       <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">{label}</p>
 
       <div className="space-y-1.5">
