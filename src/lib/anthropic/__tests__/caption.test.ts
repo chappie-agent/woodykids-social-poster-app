@@ -8,7 +8,7 @@ const shopifySource: PostSourceShopify = {
   productTitle: 'Houten treintje',
   images: ['https://cdn.shopify.com/img.jpg'],
   variants: [{ id: '1', title: 'Naturel / S', price: '24.95' }],
-  selectedImageIndex: 0,
+  selectedImageIndices: [0],
 }
 
 const validClaudeJson = JSON.stringify({
@@ -113,14 +113,14 @@ describe('parseCaptionResponse', () => {
 describe('buildUploadUserContent', () => {
   const imageSource: PostSourceUpload = {
     kind: 'upload',
-    mediaUrl: 'https://storage.supabase.co/image.jpg',
+    mediaUrls: ['https://storage.supabase.co/image.jpg'],
     mediaType: 'image',
     userPrompt: 'Pasen sale, 20% korting',
   }
 
   const videoSource: PostSourceUpload = {
     kind: 'upload',
-    mediaUrl: 'https://storage.supabase.co/video.mp4',
+    mediaUrls: ['https://storage.supabase.co/video.mp4'],
     mediaType: 'video',
     userPrompt: 'Zomercollectie 2026',
   }

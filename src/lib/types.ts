@@ -23,13 +23,13 @@ export type PostSourceShopify = {
   productTitle: string
   images: string[]
   variants?: ShopifyVariant[]   // set by create-product; absent in legacy fixture posts
-  selectedImageIndex: number
+  selectedImageIndices: number[]   // ordered array, max 10; first element is cover
 }
 
 export type PostSourceUpload = {
   kind: 'upload'
-  mediaUrl: string
-  mediaType: 'image' | 'video'
+  mediaUrls: string[]              // ordered array, max 10; first element is cover
+  mediaType: 'image' | 'video'    // type of the first/cover file
   userPrompt: string
 }
 

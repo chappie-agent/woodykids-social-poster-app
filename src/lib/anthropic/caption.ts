@@ -26,7 +26,7 @@ Geef je output ALTIJD als geldig JSON in exact dit formaat, zonder extra tekst:
 export function buildUserContent(source: PostSourceShopify): ContentBlock[] {
   const content: ContentBlock[] = []
 
-  const selectedImage = source.images[source.selectedImageIndex] ?? source.images[0]
+  const selectedImage = source.images[source.selectedImageIndices?.[0] ?? 0] ?? source.images[0]
   if (selectedImage) {
     content.push({
       type: 'image',
@@ -61,7 +61,7 @@ export function buildUploadUserContent(source: PostSourceUpload): ContentBlock[]
   if (source.mediaType === 'image') {
     content.push({
       type: 'image',
-      source: { type: 'url', url: source.mediaUrl },
+      source: { type: 'url', url: source.mediaUrls[0] },
     })
   }
 
