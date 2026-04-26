@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
   const post: Post = {
     id,
-    state: 'draft',
+    state: 'locked', // niet relevant voor concepten — UI bepaalt op scheduledAt=null
     position,
     isPerson: Boolean(isPerson),
     source: {

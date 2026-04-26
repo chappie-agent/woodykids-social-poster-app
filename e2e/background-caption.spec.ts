@@ -43,7 +43,7 @@ test('caption wordt automatisch gegenereerd op de achtergrond bij laden grid', a
   await page.waitForSelector('text=concept', { timeout: 8000 })
 
   // Wacht tot generate-caption in de achtergrond is aangeroepen
-  await page.waitForFunction(() => window.__captionGenerated === true, {}, { timeout: 10_000 }).catch(() => {})
+  await page.waitForFunction(() => (window as Window & { __captionGenerated?: boolean }).__captionGenerated === true, {}, { timeout: 10_000 }).catch(() => {})
 
   // Genoeg tijd geven voor de achtergrond request
   await page.waitForTimeout(3000)

@@ -40,8 +40,12 @@ function makeSupabaseMock(sourceRow: Record<string, unknown>) {
   }
 }
 
-function makeRequest() {
-  return new NextRequest('http://localhost/api/posts/post-1/generate-caption', { method: 'POST' })
+function makeRequest(body?: unknown) {
+  return new NextRequest('http://localhost/api/posts/post-1/generate-caption', {
+    method: 'POST',
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+    headers: { 'Content-Type': 'application/json' },
+  })
 }
 
 describe('POST /api/posts/[id]/generate-caption', () => {
@@ -64,7 +68,8 @@ describe('POST /api/posts/[id]/generate-caption', () => {
     } as never)
 
     const { POST } = await import('../route')
-    const res = await POST(makeRequest(), { params: Promise.resolve({ id: 'post-1' }) })
+    const shopifySource = { kind: 'shopify', productId: 'p1', productTitle: 'Test', images: ['https://img.jpg'], selectedImageIndices: [0] }
+    const res = await POST(makeRequest({ source: shopifySource }), { params: Promise.resolve({ id: 'post-1' }) })
 
     expect(res.status).toBe(200)
     expect(vi.mocked(buildUserContent)).toHaveBeenCalled()
@@ -86,7 +91,8 @@ describe('POST /api/posts/[id]/generate-caption', () => {
     } as never)
 
     const { POST } = await import('../route')
-    const res = await POST(makeRequest(), { params: Promise.resolve({ id: 'post-1' }) })
+    const uploadSource = { kind: 'upload', mediaUrls: ['https://storage.supabase.co/img.jpg'], mediaType: 'image', userPrompt: 'Pasen' }
+    const res = await POST(makeRequest({ source: uploadSource }), { params: Promise.resolve({ id: 'post-1' }) })
 
     expect(res.status).toBe(200)
     expect(vi.mocked(buildUploadUserContent)).toHaveBeenCalled()
