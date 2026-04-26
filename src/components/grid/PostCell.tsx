@@ -1,4 +1,5 @@
 import type { Post } from '@/lib/types'
+import { isLivePost, isPlannedPost } from '@/lib/grid/sorting'
 
 type Props = {
   post: Post
@@ -6,49 +7,42 @@ type Props = {
   onTap?: () => void
   onRepick?: () => void
   isRepicking?: boolean
+  onUnlock?: () => void
+  isUnlocking?: boolean
 }
 
 function getImageUrl(post: Post): string | null {
   if (!post.source) return null
   if (post.source.kind === 'shopify') {
-    const legacyIndex = (post.source as unknown as { selectedImageIndex?: number }).selectedImageIndex
-    const coverIndex = (post.source.selectedImageIndices?.[0]) ?? legacyIndex ?? 0
+    const coverIndex = post.source.selectedImageIndices?.[0] ?? 0
     return post.source.images[coverIndex] ?? post.source.images[0]
   }
-  const legacyUrl = (post.source as unknown as { mediaUrl?: string }).mediaUrl
-  return post.source.mediaUrls?.[0] ?? legacyUrl ?? null
+  return post.source.mediaUrls?.[0] ?? null
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleDateString('nl-NL', {
+    weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+  })
 }
 
-export function PostCell({ post, isDragging, onTap, onRepick, isRepicking }: Props) {
+export function PostCell({ post, isDragging, onTap, onRepick, isRepicking, onUnlock, isUnlocking }: Props) {
   const imageUrl = getImageUrl(post)
-
-  if (post.state === 'empty') {
-    return (
-      <div className="aspect-[4/5] border-[1.5px] border-dashed border-woody-taupe/50 bg-woody-beige flex items-center justify-center">
-        <span className="text-[9px] font-bold text-woody-taupe uppercase tracking-wider">leeg</span>
-      </div>
-    )
-  }
-
-  const isConflict = post.state === 'conflict'
-  const isLocked = post.state === 'locked'
+  const isConcept = post.scheduledAt === null
+  const isLive = isLivePost(post)
+  const isPlanned = isPlannedPost(post)
 
   return (
     <div
       className={[
         'aspect-[4/5] relative overflow-hidden select-none',
-        isLocked ? (post.isPerson ? 'bg-woody-mint/80' : 'bg-woody-mint') : (post.isPerson ? 'bg-woody-taupe/50' : 'bg-woody-taupe/70'),
-        isConflict ? 'ring-[2.5px] ring-woody-bordeaux ring-offset-0' : '',
+        post.isPerson ? 'bg-woody-taupe/50' : 'bg-woody-taupe/70',
         isDragging ? 'opacity-40' : '',
-        !isLocked ? 'cursor-grab active:cursor-grabbing' : 'cursor-not-allowed',
+        isConcept ? 'cursor-grab active:cursor-grabbing' : 'cursor-default',
+        isLive ? 'opacity-95' : '',
       ].join(' ')}
-      onClick={onTap}
+      onClick={isConcept || isPlanned ? onTap : undefined}
     >
-      {/* Background image with crop applied */}
       {imageUrl && (
         <img
           src={imageUrl}
@@ -62,36 +56,17 @@ export function PostCell({ post, isDragging, onTap, onRepick, isRepicking }: Pro
         />
       )}
 
-      {/* Overlay gradient for readability */}
       {imageUrl && <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/0 to-black/40" />}
 
-      {/* Conflict pulse ring — CSS animation via Tailwind arbitrary */}
-      {isConflict && (
-        <span className="absolute inset-[-3px] rounded-[7px] border-[2.5px] border-woody-bordeaux animate-pulse pointer-events-none" />
-      )}
-
-      {/* ! badge for conflict */}
-      {isConflict && (
-        <div className="absolute top-[-5px] left-[-5px] z-10 w-4 h-4 rounded-full bg-woody-bordeaux flex items-center justify-center shadow">
-          <span className="text-[9px] font-black text-white">!</span>
-        </div>
-      )}
-
-      {/* Re-pick button — overlay above drag layer */}
-      {onRepick && (post.state === 'draft' || post.state === 'conflict') && post.source?.kind === 'shopify' && (
+      {/* Re-pick (alleen voor concepten op shopify) */}
+      {onRepick && isConcept && post.source?.kind === 'shopify' && (
         <button
           type="button"
           aria-label="Ander product kiezen"
-          title="Ander product kiezen"
           disabled={isRepicking}
           onPointerDown={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-          onTouchStart={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation()
-            onRepick()
-          }}
-          className="absolute top-1 right-1 z-20 w-6 h-6 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center shadow-md backdrop-blur-sm disabled:opacity-60 disabled:cursor-wait cursor-pointer transition-colors"
+          onClick={(e) => { e.stopPropagation(); onRepick() }}
+          className="absolute top-1 right-1 z-20 w-6 h-6 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center shadow-md backdrop-blur-sm cursor-pointer"
         >
           {isRepicking ? (
             <span className="block w-3 h-3 border-[1.5px] border-white border-t-transparent rounded-full animate-spin" />
@@ -106,31 +81,48 @@ export function PostCell({ post, isDragging, onTap, onRepick, isRepicking }: Pro
         </button>
       )}
 
-      {/* Spinner overlay while repicking */}
-      {isRepicking && (
-        <div className="absolute inset-0 bg-black/30 z-10 pointer-events-none" />
-      )}
-
-      {/* Draft chip */}
-      {(post.state === 'draft' || post.state === 'conflict') && (
+      {/* Concept badge */}
+      {isConcept && (
         <div className="absolute top-1 left-1 bg-woody-bordeaux/85 rounded-[3px] px-1 py-0.5 text-[7px] font-bold text-woody-cream">
           concept
         </div>
       )}
 
-      {/* Lock icon for locked */}
-      {isLocked && (
-        <div className="absolute top-1 right-1 text-[11px] leading-none">🔒</div>
+      {/* Planned: lock icon + date + unlock-knop */}
+      {isPlanned && (
+        <>
+          <div className="absolute top-1 right-1 text-[11px] leading-none">🔒</div>
+          {onUnlock && (
+            <button
+              type="button"
+              aria-label="Unlock om te editen"
+              disabled={isUnlocking}
+              onClick={(e) => { e.stopPropagation(); onUnlock() }}
+              className="absolute top-1 left-1 z-20 bg-woody-cream/95 hover:bg-woody-cream rounded-[3px] px-1.5 py-0.5 text-[8px] font-bold text-woody-bordeaux shadow cursor-pointer disabled:opacity-50"
+            >
+              {isUnlocking ? '...' : 'Unlock'}
+            </button>
+          )}
+          {post.scheduledAt && (
+            <div className="absolute bottom-1 left-1 right-1 bg-woody-cream/90 rounded-[3px] px-1 py-0.5 text-[7px] font-bold text-woody-bordeaux text-center truncate">
+              {formatDate(post.scheduledAt)}
+            </div>
+          )}
+        </>
       )}
 
-      {/* Date badge for locked */}
-      {isLocked && post.scheduledAt && (
-        <div className="absolute bottom-1 left-1 right-1 bg-woody-cream/90 rounded-[3px] px-1 py-0.5 text-[7px] font-bold text-woody-bordeaux text-center truncate">
-          {formatDate(post.scheduledAt)}
-        </div>
+      {/* Live: gepubliceerd-badge */}
+      {isLive && (
+        <>
+          <div className="absolute top-1 right-1 text-[11px] leading-none">✓</div>
+          {post.scheduledAt && (
+            <div className="absolute bottom-1 left-1 right-1 bg-black/60 rounded-[3px] px-1 py-0.5 text-[7px] font-bold text-white text-center truncate">
+              live · {formatDate(post.scheduledAt)}
+            </div>
+          )}
+        </>
       )}
 
-      {/* Product title for draft (no image) */}
       {!imageUrl && post.source?.kind === 'shopify' && (
         <div className="absolute bottom-1 left-1 right-1 bg-white/60 rounded-[3px] px-1 py-0.5 text-[7px] font-bold text-center truncate">
           {post.source.productTitle}
