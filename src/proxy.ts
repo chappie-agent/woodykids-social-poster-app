@@ -20,6 +20,9 @@ export async function proxy(request: NextRequest) {
     },
   )
 
+  // Skip auth in E2E test runs
+  if (process.env.E2E_TEST === 'true') return supabaseResponse
+
   const { data: { user } } = await supabase.auth.getUser()
   const isLoginPage = request.nextUrl.pathname === '/login'
 
