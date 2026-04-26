@@ -52,10 +52,14 @@ export async function POST(
   const source = postRow.source as PostSource | null
   let mediaUrls: string[] | undefined
   if (source?.kind === 'shopify') {
-    const urls = source.selectedImageIndices.map(i => source.images[i]).filter((url): url is string => typeof url === 'string')
+    const legacyIndex = (source as unknown as { selectedImageIndex?: number }).selectedImageIndex
+    const indices = source.selectedImageIndices ?? (legacyIndex !== undefined ? [legacyIndex] : [0])
+    const urls = indices.map(i => source.images[i]).filter((url): url is string => typeof url === 'string')
     if (urls.length) mediaUrls = urls
   } else if (source?.kind === 'upload') {
-    if (source.mediaUrls.length) mediaUrls = source.mediaUrls
+    const legacyUrl = (source as unknown as { mediaUrl?: string }).mediaUrl
+    const urls = source.mediaUrls ?? (legacyUrl ? [legacyUrl] : [])
+    if (urls.length) mediaUrls = urls
   }
 
   const content = assembleCaption(caption)

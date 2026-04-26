@@ -26,7 +26,9 @@ Geef je output ALTIJD als geldig JSON in exact dit formaat, zonder extra tekst:
 export function buildUserContent(source: PostSourceShopify): ContentBlock[] {
   const content: ContentBlock[] = []
 
-  const selectedImage = source.images[source.selectedImageIndices[0]] ?? source.images[0]
+  const legacyIndex = (source as unknown as { selectedImageIndex?: number }).selectedImageIndex
+  const coverIndex = (source.selectedImageIndices?.[0]) ?? legacyIndex ?? 0
+  const selectedImage = source.images[coverIndex] ?? source.images[0]
   if (selectedImage) {
     content.push({
       type: 'image',
@@ -58,10 +60,12 @@ export function buildUserContent(source: PostSourceShopify): ContentBlock[] {
 export function buildUploadUserContent(source: PostSourceUpload): ContentBlock[] {
   const content: ContentBlock[] = []
 
-  if (source.mediaType === 'image') {
+  const legacyUrl = (source as unknown as { mediaUrl?: string }).mediaUrl
+  const coverUrl = source.mediaUrls?.[0] ?? legacyUrl
+  if (source.mediaType === 'image' && coverUrl) {
     content.push({
       type: 'image',
-      source: { type: 'url', url: source.mediaUrls[0] },
+      source: { type: 'url', url: coverUrl },
     })
   }
 

@@ -93,9 +93,15 @@ function EditorContent({ postId }: { postId: string }) {
 
   if (!post || !post.source) return null
 
-  const imageUrl = post.source.kind === 'shopify'
-    ? post.source.images[post.source.selectedImageIndices[0]] ?? post.source.images[0]
-    : post.source.mediaUrls[0] ?? undefined
+  const imageUrl = (() => {
+    if (post.source.kind === 'shopify') {
+      const legacyIndex = (post.source as unknown as { selectedImageIndex?: number }).selectedImageIndex
+      const coverIndex = (post.source.selectedImageIndices?.[0]) ?? legacyIndex ?? 0
+      return post.source.images[coverIndex] ?? post.source.images[0]
+    }
+    const legacyUrl = (post.source as unknown as { mediaUrl?: string }).mediaUrl
+    return post.source.mediaUrls?.[0] ?? legacyUrl ?? undefined
+  })()
 
   const isShopify = post.source.kind === 'shopify'
   const title = post.source.kind === 'shopify' ? post.source.productTitle : 'Eigen post'
@@ -159,7 +165,7 @@ function EditorContent({ postId }: { postId: string }) {
       {isShopify && post.source.kind === 'shopify' && (
         <MultiPhotoSelector
           images={post.source.images}
-          selectedIndices={post.source.selectedImageIndices}
+          selectedIndices={post.source.selectedImageIndices ?? [(post.source as unknown as { selectedImageIndex?: number }).selectedImageIndex ?? 0]}
           onChange={(selectedImageIndices) => {
             if (post.source?.kind !== 'shopify') return
             save({ source: { ...post.source, selectedImageIndices } })
