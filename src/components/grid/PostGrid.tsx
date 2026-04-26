@@ -99,7 +99,7 @@ export function PostGrid() {
       useGridStore.getState().setPosts([concept, ...useGridStore.getState().posts])
       toast.success('Unlocked — je kunt nu editen')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Unlock mislukt')
+      toast.error(err instanceof Error ? err.message : 'Unlock mislukt', { duration: 8000 })
     } finally {
       setUnlockingIds(prev => {
         const next = new Set(prev); next.delete(post.id); return next

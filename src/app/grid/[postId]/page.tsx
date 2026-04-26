@@ -123,7 +123,7 @@ function EditorContent({ postId }: { postId: string }) {
       toast.success('Unlocked — je kunt nu editen')
       router.replace(`/grid/${concept.id}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Unlock mislukt')
+      toast.error(err instanceof Error ? err.message : 'Unlock mislukt', { duration: 8000 })
     } finally {
       setBusy(false)
     }

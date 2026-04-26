@@ -63,7 +63,7 @@ export async function cancelZernioPost(zernioPostId: string): Promise<void> {
 
   let res: Response
   try {
-    res = await fetch(`https://zernio.com/api/v1/posts?postId=${encodeURIComponent(zernioPostId)}`, {
+    res = await fetch(`https://zernio.com/api/v1/posts/${encodeURIComponent(zernioPostId)}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${apiKey}` },
       signal: controller.signal,

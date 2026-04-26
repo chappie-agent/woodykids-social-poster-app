@@ -41,7 +41,24 @@ export async function POST(
       await cancelZernioPost(zernioPostId)
     } catch (err) {
       console.error('[unlock] Zernio cancel error:', err)
-      return NextResponse.json({ error: 'Zernio cancel mislukt — DB ongewijzigd' }, { status: 502 })
+      let userMessage = 'Zernio cancel mislukt — DB ongewijzigd'
+      if (err instanceof Error) {
+        const match = err.message.match(/Zernio (\d+): ([\s\S]*)/)
+        if (match) {
+          const status = match[1]
+          const rawBody = match[2].trim()
+          // Probeer JSON-error door te geven als die er is.
+          try {
+            const parsed = JSON.parse(rawBody) as { error?: string; message?: string }
+            const detail = parsed.error ?? parsed.message
+            if (detail) userMessage = `Zernio (${status}): ${detail}`
+            else userMessage = `Zernio (${status}): ${rawBody.slice(0, 200)}`
+          } catch {
+            userMessage = `Zernio (${status}): ${rawBody.slice(0, 200)}`
+          }
+        }
+      }
+      return NextResponse.json({ error: userMessage }, { status: 502 })
     }
   }
 
