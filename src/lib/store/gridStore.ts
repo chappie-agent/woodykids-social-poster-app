@@ -3,18 +3,17 @@ import type { Post } from '@/lib/types'
 
 type GridStore = {
   posts: Post[]
-  conflictIds: string[]
   draggingId: string | null
   setPosts: (posts: Post[]) => void
-  setOrder: (ids: string[]) => void
+  addConcepts: (concepts: Post[]) => void
+  removePost: (id: string) => void
+  reorderConcepts: (orderedIds: string[]) => void
   setDragging: (id: string | null) => void
   updatePost: (id: string, patch: Partial<Post>) => void
-  detectConflicts: () => void
 }
 
-export const useGridStore = create<GridStore>((set, get) => ({
+export const useGridStore = create<GridStore>((set) => ({
   posts: [],
-  conflictIds: [],
   draggingId: null,
 
   setPosts: (posts) => {
@@ -25,17 +24,33 @@ export const useGridStore = create<GridStore>((set, get) => ({
       return true
     })
     set({ posts: unique })
-    get().detectConflicts()
   },
 
-  setOrder: (ids) => {
-    set(state => ({
-      posts: state.posts.map(p => {
-        const idx = ids.indexOf(p.id)
-        return idx === -1 ? p : { ...p, position: idx }
-      }),
-    }))
-    get().detectConflicts()
+  addConcepts: (concepts) => {
+    set(state => {
+      const existingIds = new Set(state.posts.map(p => p.id))
+      const fresh = concepts.filter(c => !existingIds.has(c.id))
+      // Concepten vooraan plaatsen — UI sorteert verder met sortPostsForFeed.
+      return { posts: [...fresh, ...state.posts] }
+    })
+  },
+
+  removePost: (id) => {
+    set(state => ({ posts: state.posts.filter(p => p.id !== id) }))
+  },
+
+  reorderConcepts: (orderedIds) => {
+    set(state => {
+      const idIndex = new Map(orderedIds.map((id, i) => [id, i]))
+      const concepts = state.posts.filter(p => p.scheduledAt === null)
+      const dated = state.posts.filter(p => p.scheduledAt !== null)
+      const reordered = [...concepts].sort((a, b) => {
+        const ai = idIndex.get(a.id) ?? Number.MAX_SAFE_INTEGER
+        const bi = idIndex.get(b.id) ?? Number.MAX_SAFE_INTEGER
+        return ai - bi
+      })
+      return { posts: [...reordered, ...dated] }
+    })
   },
 
   setDragging: (id) => set({ draggingId: id }),
@@ -43,35 +58,6 @@ export const useGridStore = create<GridStore>((set, get) => ({
   updatePost: (id, patch) => {
     set(state => ({
       posts: state.posts.map(p => p.id === id ? { ...p, ...patch } : p),
-    }))
-    get().detectConflicts()
-  },
-
-  detectConflicts: () => {
-    const { posts } = get()
-    const lockedPositions = posts
-      .filter(p => p.state === 'locked')
-      .map(p => p.position)
-
-    if (lockedPositions.length === 0) {
-      set({ conflictIds: [] })
-      return
-    }
-
-    const minLockedPosition = Math.min(...lockedPositions)
-
-    const conflictIds = posts
-      .filter(p => (p.state === 'draft' || p.state === 'conflict') && p.position > minLockedPosition)
-      .map(p => p.id)
-
-    // Update state field on the posts themselves
-    set(state => ({
-      conflictIds,
-      posts: state.posts.map(p => {
-        if (p.state === 'draft' && conflictIds.includes(p.id)) return { ...p, state: 'conflict' as const }
-        if (p.state === 'conflict' && !conflictIds.includes(p.id)) return { ...p, state: 'draft' as const }
-        return p
-      }),
     }))
   },
 }))
