@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { useGridStore } from '@/lib/store/gridStore'
 import { PhotoCrop } from '@/components/editor/PhotoCrop'
 import { MultiPhotoSelector } from '@/components/editor/MultiPhotoSelector'
+import { UploadMediaStrip } from '@/components/editor/UploadMediaStrip'
 import { CaptionBlock } from '@/components/editor/CaptionBlock'
 import { HashtagBadges } from '@/components/editor/HashtagBadges'
 import { ScheduleSheet } from '@/components/editor/ScheduleSheet'
@@ -180,6 +181,17 @@ function EditorContent({ postId }: { postId: string }) {
           onChange={readOnly ? () => {} : (selectedImageIndices) => {
             if (post.source?.kind !== 'shopify') return
             save({ source: { ...post.source, selectedImageIndices } })
+          }}
+        />
+      )}
+
+      {post.source.kind === 'upload' && (
+        <UploadMediaStrip
+          mediaUrls={post.source.mediaUrls}
+          disabled={readOnly}
+          onChange={(mediaUrls) => {
+            if (post.source?.kind !== 'upload') return
+            save({ source: { ...post.source, mediaUrls } })
           }}
         />
       )}
