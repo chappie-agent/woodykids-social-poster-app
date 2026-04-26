@@ -7,7 +7,7 @@ import { ChevronLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { useGridStore } from '@/lib/store/gridStore'
 import { PhotoCrop } from '@/components/editor/PhotoCrop'
-import { PhotoSelector } from '@/components/editor/PhotoSelector'
+import { MultiPhotoSelector } from '@/components/editor/MultiPhotoSelector'
 import { CaptionBlock } from '@/components/editor/CaptionBlock'
 import { HashtagBadges } from '@/components/editor/HashtagBadges'
 import { ScheduleSheet } from '@/components/editor/ScheduleSheet'
@@ -94,8 +94,8 @@ function EditorContent({ postId }: { postId: string }) {
   if (!post || !post.source) return null
 
   const imageUrl = post.source.kind === 'shopify'
-    ? post.source.images[post.source.selectedImageIndices[0]]
-    : post.source.mediaUrl
+    ? post.source.images[post.source.selectedImageIndices[0]] ?? post.source.images[0]
+    : post.source.mediaUrls[0]
 
   const isShopify = post.source.kind === 'shopify'
   const title = post.source.kind === 'shopify' ? post.source.productTitle : 'Eigen post'
@@ -157,12 +157,12 @@ function EditorContent({ postId }: { postId: string }) {
 
       {/* Photo selector */}
       {isShopify && post.source.kind === 'shopify' && (
-        <PhotoSelector
+        <MultiPhotoSelector
           images={post.source.images}
-          selectedIndex={post.source.selectedImageIndices[0] ?? 0}
-          onChange={(idx) => {
+          selectedIndices={post.source.selectedImageIndices}
+          onChange={(selectedImageIndices) => {
             if (post.source?.kind !== 'shopify') return
-            save({ source: { ...post.source, selectedImageIndices: [idx] } })
+            save({ source: { ...post.source, selectedImageIndices } })
           }}
         />
       )}
