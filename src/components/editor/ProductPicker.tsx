@@ -2,16 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { useGridStore } from '@/lib/store/gridStore'
 import type { Post, ShopifyProduct, ShopifyCollection } from '@/lib/types'
 
 type Props = {
   open: boolean
-  position: number
   onClose: () => void
   onCreated: (post: Post) => void
 }
 
-export function ProductPicker({ open, position, onClose, onCreated }: Props) {
+export function ProductPicker({ open, onClose, onCreated }: Props) {
   const [products, setProducts] = useState<ShopifyProduct[]>([])
   const [collections, setCollections] = useState<ShopifyCollection[]>([])
   const [search, setSearch] = useState('')
@@ -50,16 +50,39 @@ export function ProductPicker({ open, position, onClose, onCreated }: Props) {
     setCreating(true)
     setCreateError(null)
     try {
-      const res = await fetch('/api/posts/create-product', {
+      if (product.images.length === 0) throw new Error('Product heeft geen afbeeldingen')
+      const source = {
+        kind: 'shopify' as const,
+        productId: product.id,
+        productTitle: product.title,
+        images: product.images,
+        variants: product.variants,
+        selectedImageIndices: [Math.min(1, product.images.length - 1)],
+      }
+      const post: Post = {
+        id: crypto.randomUUID(),
+        state: 'locked',
+        position: null,
+        source,
+        cropData: { x: 0, y: 0, scale: 1 },
+        caption: null,
+        scheduledAt: null,
+        isPerson: false,
+      }
+      onCreated(post)
+      // Fire-and-forget: caption genereert op de achtergrond
+      fetch(`/api/posts/${post.id}/generate-caption`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId: product.id, position }),
+        body: JSON.stringify({ source }),
       })
-      if (!res.ok) throw new Error(`${res.status}`)
-      const post = await res.json() as Post
-      onCreated(post)
-      // Fire-and-forget: caption genereert terwijl gebruiker naar de editor navigeert
-      fetch(`/api/posts/${post.id}/generate-caption`, { method: 'POST' }).catch(() => {})
+        .then(r => (r.ok ? r.json() : null))
+        .then((updated: { caption?: Post['caption'] } | null) => {
+          if (updated?.caption) {
+            useGridStore.getState().updatePost(post.id, { caption: updated.caption })
+          }
+        })
+        .catch(() => {})
       onClose()
     } catch {
       setCreateError('Toevoegen mislukt. Probeer opnieuw.')

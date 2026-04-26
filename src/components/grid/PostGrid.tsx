@@ -172,7 +172,6 @@ export function PostGrid() {
 
       <ProductPicker
         open={productPickerOpen}
-        position={0}
         onClose={() => setProductPickerOpen(false)}
         onCreated={(newPost) => {
           useGridStore.getState().addConcepts([newPost])
@@ -182,7 +181,6 @@ export function PostGrid() {
 
       <UploadPicker
         open={uploadPickerOpen}
-        position={0}
         onClose={() => setUploadPickerOpen(false)}
         onCreated={(newPost) => {
           useGridStore.getState().addConcepts([newPost])

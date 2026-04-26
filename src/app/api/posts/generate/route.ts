@@ -1,21 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getProducts } from '@/lib/shopify/client'
 import { tokenize, isTooSimilar } from '@/lib/shopify/similarity'
-import type { Post, PostCaption, ShopifyProduct } from '@/lib/types'
+import type { Post, ShopifyProduct } from '@/lib/types'
 import { randomUUID } from 'crypto'
-
-const makeCaption = (): PostCaption => ({
-  opener: { variants: ['Opener variant 1.', 'Opener variant 2.', 'Opener variant 3.'], selected: 0 },
-  middle: { variants: ['Middenstuk variant 1.', 'Middenstuk variant 2.', 'Middenstuk variant 3.'], selected: 0 },
-  closer: { variants: ['Afsluiter variant 1.', 'Afsluiter variant 2.', 'Afsluiter variant 3.'], selected: 0 },
-  hashtags: [
-    { text: '#woodykids', active: true },
-    { text: '#houtenspeelgoed', active: true },
-    { text: '#naturelspelen', active: true },
-    { text: '#duurzaamspeelgoed', active: false },
-    { text: '#kidstoys', active: false },
-  ],
-})
 
 export async function POST(request: NextRequest) {
   const { count, existingProductIds } = await request.json() as {
@@ -81,7 +68,7 @@ export async function POST(request: NextRequest) {
         selectedImageIndices,
       },
       cropData: { x: 0, y: 0, scale: 1 },
-      caption: makeCaption(),
+      caption: null,
       scheduledAt: null,
     }
   })

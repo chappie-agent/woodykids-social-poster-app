@@ -30,24 +30,35 @@ export async function POST(
   }
 
   let responseText: string
-  try {
+  const buildContent = (withImage: boolean): Anthropic.ContentBlockParam[] => {
+    const blocks = source.kind === 'shopify' ? buildUserContent(source) : buildUploadUserContent(source)
+    return (withImage ? blocks : blocks.filter(b => b.type !== 'image')) as Anthropic.ContentBlockParam[]
+  }
+  const callAnthropic = async (withImage: boolean) => {
     const anthropic = createAnthropicClient()
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: buildSystemPrompt(toneOfVoice),
-      messages: [
-        {
-          role: 'user',
-          content: (source.kind === 'shopify'
-            ? buildUserContent(source)
-            : buildUploadUserContent(source)
-          ) as Anthropic.ContentBlockParam[],
-        },
-      ],
+      messages: [{ role: 'user', content: buildContent(withImage) }],
     })
     const block = response.content[0]
-    responseText = block.type === 'text' ? block.text : ''
+    return block.type === 'text' ? block.text : ''
+  }
+
+  try {
+    try {
+      responseText = await callAnthropic(true)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : ''
+      // Anthropic kan soms de image-URL niet downloaden (timeout / 4xx). Retry zonder image.
+      if (/Unable to download the file|timed out while trying to download/i.test(msg)) {
+        console.warn('[generate-caption] image fetch failed, retrying without image:', msg)
+        responseText = await callAnthropic(false)
+      } else {
+        throw err
+      }
+    }
   } catch (err) {
     console.error('[generate-caption] Anthropic error:', err)
     return NextResponse.json({ error: 'AI generatie mislukt' }, { status: 500 })

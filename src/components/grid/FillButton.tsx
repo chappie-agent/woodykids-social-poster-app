@@ -58,7 +58,7 @@ export function FillButton() {
       size="sm"
       className="bg-woody-cream hover:bg-woody-beige text-woody-bordeaux text-xs font-bold rounded-full px-3 h-7"
     >
-      {loading ? '...' : `✨ Voeg 9 toe`}
+      {loading ? '...' : `Add Feed`}
     </Button>
   )
 }
