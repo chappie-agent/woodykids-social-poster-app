@@ -36,7 +36,7 @@ function SortableConceptCell({ post, onRepick, isRepicking }: {
   }
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} data-testid="grid-cell" data-cell-id={post.id} {...attributes} {...listeners}>
       <PostCell
         post={post}
         isDragging={isDragging}
@@ -137,7 +137,9 @@ export function PostGrid() {
       >
         <SortableContext items={conceptIds} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-3 gap-[1px] bg-[#2a2a2a]">
-            <AddTile onTap={() => setSourcePickerOpen(true)} />
+            <div data-testid="grid-cell" data-cell-kind="add">
+              <AddTile onTap={() => setSourcePickerOpen(true)} />
+            </div>
             {sorted.map(post =>
               post.scheduledAt === null ? (
                 <SortableConceptCell
@@ -147,7 +149,7 @@ export function PostGrid() {
                   isRepicking={repickingIds.has(post.id)}
                 />
               ) : (
-                <div key={post.id}>
+                <div key={post.id} data-testid="grid-cell" data-cell-id={post.id}>
                   <PostCell
                     post={post}
                     onTap={isPlannedPost(post) ? () => router.push(`/grid/${post.id}`) : undefined}
