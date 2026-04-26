@@ -7,12 +7,13 @@ function mapPost(row: Record<string, unknown>): Post {
   return {
     id: row.id as string,
     state: row.state as PostState,
-    position: row.position as number,
+    position: (row.position as number | null) ?? null,
     source: (row.source as PostSource) ?? null,
     cropData: (row.crop_data as CropData) ?? { x: 0, y: 0, scale: 1 },
     caption: (row.caption as PostCaption) ?? null,
     scheduledAt: (row.scheduled_at as string) ?? null,
     isPerson: Boolean(row.is_person),
+    zernioPostId: (row.zernio_post_id as string) ?? undefined,
   }
 }
 
@@ -21,7 +22,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from('posts')
     .select('*')
-    .order('position')
+    .order('scheduled_at', { ascending: false })
 
   if (error) {
     console.error('[/api/posts] Supabase error:', error)
