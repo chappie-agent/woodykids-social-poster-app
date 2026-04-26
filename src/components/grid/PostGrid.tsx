@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import {
   DndContext, DragEndEvent, DragStartEvent,
@@ -56,6 +56,24 @@ export function PostGrid() {
   const [uploadPickerOpen, setUploadPickerOpen] = useState(false)
   const [repickingIds, setRepickingIds] = useState<Set<string>>(new Set())
   const [unlockingIds, setUnlockingIds] = useState<Set<string>>(new Set())
+  const [firstColumn, setFirstColumn] = useState<1 | 2 | 3>(2)
+
+  useEffect(() => {
+    fetch('/api/settings/feed-first-column')
+      .then(r => (r.ok ? r.json() : null))
+      .then((data: { column?: number } | null) => {
+        if (data?.column === 1 || data?.column === 2 || data?.column === 3) {
+          setFirstColumn(data.column)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  // Aantal lege placeholder-cellen tussen AddTile en de eerste post:
+  // firstColumn = 1 → 2 fillers (post landt op rij 2, kolom 1)
+  // firstColumn = 2 → 0 fillers (post landt naast AddTile)
+  // firstColumn = 3 → 1 filler  (post landt op rij 1, kolom 3)
+  const fillerCount = (firstColumn + 1) % 3
 
   const handleRepick = useCallback(async (post: Post) => {
     setRepickingIds(prev => new Set(prev).add(post.id))
@@ -140,6 +158,15 @@ export function PostGrid() {
             <div data-testid="grid-cell" data-cell-kind="add">
               <AddTile onTap={() => setSourcePickerOpen(true)} />
             </div>
+            {Array.from({ length: fillerCount }, (_, i) => (
+              <div
+                key={`filler-${i}`}
+                data-testid="grid-cell"
+                data-cell-kind="filler"
+                aria-hidden="true"
+                className="aspect-[4/5] bg-woody-beige/40"
+              />
+            ))}
             {sorted.map(post =>
               post.scheduledAt === null ? (
                 <SortableConceptCell
