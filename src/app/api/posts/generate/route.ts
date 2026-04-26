@@ -18,15 +18,13 @@ const makeCaption = (): PostCaption => ({
 })
 
 export async function POST(request: NextRequest) {
-  const { count, startPosition, existingProductIds } = await request.json() as {
+  const { count, existingProductIds } = await request.json() as {
     count: number
-    startPosition: number
     existingProductIds?: string[]
   }
 
   let products: ShopifyProduct[]
   try {
-    // Need >= 2 images so we can always start from index 1 (cover is never index 0)
     products = (await getProducts()).filter(p => p.images.length >= 2)
   } catch (err) {
     console.error('[/api/posts/generate] Shopify fetch failed', err)
@@ -39,14 +37,12 @@ export async function POST(request: NextRequest) {
 
   const shuffled = [...products].sort(() => Math.random() - 0.5)
 
-  // Seed similarity tracking with already-shown products in the grid
   const existingTokens: Set<string>[] = []
   if (existingProductIds && existingProductIds.length > 0) {
     const existingSet = new Set(existingProductIds)
     for (const p of products) if (existingSet.has(p.id)) existingTokens.push(tokenize(p.title))
   }
 
-  // Greedy pick: skip products too similar to any already-picked or already-shown
   const picked: ShopifyProduct[] = []
   const pickedTokens: Set<string>[] = [...existingTokens]
   for (const p of shuffled) {
@@ -56,7 +52,6 @@ export async function POST(request: NextRequest) {
     picked.push(p)
     pickedTokens.push(tokens)
   }
-  // Fallback: if we couldn't fill count due to too-strict similarity, top up from remaining
   if (picked.length < count) {
     const have = new Set(picked.map(p => p.id))
     for (const p of shuffled) {
@@ -65,6 +60,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Concepten: geen state, geen position — leven puur in de browser-store.
   const newPosts: Post[] = Array.from({ length: count }, (_, i) => {
     const product = picked[i % picked.length]
     const isPerson = i % 2 === 0
@@ -74,8 +70,8 @@ export async function POST(request: NextRequest) {
     )
     return {
       id: randomUUID(),
-      state: 'draft',
-      position: startPosition + i,
+      state: 'locked', // Niet relevant voor concepten; UI toont op basis van scheduledAt=null.
+      position: null,
       isPerson,
       source: {
         kind: 'shopify',
