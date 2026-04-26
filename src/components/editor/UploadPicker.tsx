@@ -13,24 +13,29 @@ type Props = {
 }
 
 export function UploadPicker({ open, position, onClose, onCreated }: Props) {
-  const [file, setFile] = useState<File | null>(null)
-  const [preview, setPreview] = useState<string | null>(null)
+  const [files, setFiles] = useState<File[]>([])
+  const [previews, setPreviews] = useState<string[]>([])
+  const [overLimitWarning, setOverLimitWarning] = useState(false)
   const [userPrompt, setUserPrompt] = useState('')
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]
-    if (!f) return
-    setFile(f)
+    const selected = Array.from(e.target.files ?? [])
+    if (selected.length === 0) return
+    setPreviews(prev => { prev.forEach(p => { if (p) URL.revokeObjectURL(p) }); return [] })
+    const capped = selected.slice(0, 10)
+    setOverLimitWarning(selected.length > 10)
+    setFiles(capped)
+    setPreviews(capped.map(f => f.type.startsWith('video/') ? '' : URL.createObjectURL(f)))
     setError(null)
-    setPreview(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(f) })
   }
 
   function reset() {
-    setPreview(prev => { if (prev) URL.revokeObjectURL(prev); return null })
-    setFile(null)
+    setPreviews(prev => { prev.forEach(p => { if (p) URL.revokeObjectURL(p) }); return [] })
+    setFiles([])
+    setOverLimitWarning(false)
     setUserPrompt('')
     setError(null)
     setUploading(false)
@@ -38,33 +43,34 @@ export function UploadPicker({ open, position, onClose, onCreated }: Props) {
   }
 
   async function handleAdd() {
-    if (!file) return
+    if (files.length === 0) return
     setUploading(true)
     setError(null)
 
     const supabase = createClient()
-    const ext = file.name.split('.').pop() ?? 'bin'
-    const path = `${crypto.randomUUID()}.${ext}`
+    const uploads = files.map(file => {
+      const ext = file.name.split('.').pop() ?? 'bin'
+      return { file, path: `${crypto.randomUUID()}.${ext}` }
+    })
 
     try {
-      const { error: uploadError } = await supabase.storage
-        .from('post-media')
-        .upload(path, file)
-      if (uploadError) throw new Error(uploadError.message)
+      const mediaUrls = await Promise.all(uploads.map(async ({ file, path }) => {
+        const { error: uploadError } = await supabase.storage
+          .from('post-media')
+          .upload(path, file)
+        if (uploadError) throw new Error(uploadError.message)
+        return supabase.storage.from('post-media').getPublicUrl(path).data.publicUrl
+      }))
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('post-media')
-        .getPublicUrl(path)
-
-      const mediaType: 'image' | 'video' = file.type.startsWith('video/') ? 'video' : 'image'
+      const mediaType: 'image' | 'video' = files[0].type.startsWith('video/') ? 'video' : 'image'
 
       const res = await fetch('/api/posts/create-upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mediaUrls: [publicUrl], mediaType, userPrompt, position }),
+        body: JSON.stringify({ mediaUrls, mediaType, userPrompt, position }),
       })
       if (!res.ok) {
-        supabase.storage.from('post-media').remove([path]).catch(() => {})
+        supabase.storage.from('post-media').remove(uploads.map(u => u.path)).catch(() => {})
         throw new Error(`${res.status}`)
       }
       const post = await res.json() as Post
@@ -75,6 +81,7 @@ export function UploadPicker({ open, position, onClose, onCreated }: Props) {
       reset()
       onClose()
     } catch {
+      supabase.storage.from('post-media').remove(uploads.map(u => u.path)).catch(() => {})
       setError('Uploaden mislukt. Probeer opnieuw.')
     } finally {
       setUploading(false)
@@ -89,34 +96,38 @@ export function UploadPicker({ open, position, onClose, onCreated }: Props) {
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto flex flex-col gap-4">
-          {!file ? (
+          {files.length === 0 ? (
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
               className="w-full aspect-square max-h-48 border-2 border-dashed border-woody-taupe/40 rounded-xl flex items-center justify-center text-sm text-woody-taupe"
             >
-              Tik om foto of video te kiezen
+              {"Tik om foto's of video's te kiezen"}
             </button>
           ) : (
             <div className="relative">
-              {file.type.startsWith('video/') ? (
-                <div className="w-full aspect-square max-h-48 bg-woody-beige rounded-xl flex items-center justify-center">
-                  <p className="text-xs text-woody-taupe text-center px-4"><span aria-hidden="true">🎥 </span>{file.name}</p>
+              <div className="w-full overflow-x-auto">
+                <div className="flex gap-2 py-2 w-max">
+                  {files.map((file, i) => (
+                    <div key={i} className="flex-shrink-0 w-20 h-24 rounded-xl overflow-hidden bg-woody-beige">
+                      {file.type.startsWith('video/') ? (
+                        <div className="w-full h-full flex items-center justify-center px-1">
+                          <p className="text-[10px] text-woody-taupe text-center break-all">{file.name}</p>
+                        </div>
+                      ) : (
+                        <img
+                          src={previews[i]}
+                          alt={`Preview ${i + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <img
-                  src={preview!}
-                  alt="Preview"
-                  className="w-full aspect-square max-h-48 object-cover rounded-xl"
-                />
-              )}
+              </div>
               <button
                 type="button"
-                onClick={() => {
-                  setPreview(prev => { if (prev) URL.revokeObjectURL(prev); return null })
-                  setFile(null)
-                  if (inputRef.current) inputRef.current.value = ''
-                }}
+                onClick={reset}
                 className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full"
               >
                 Wijzig
@@ -127,10 +138,15 @@ export function UploadPicker({ open, position, onClose, onCreated }: Props) {
           <input
             ref={inputRef}
             type="file"
+            multiple
             accept="image/*,video/*"
             className="hidden"
             onChange={handleFileChange}
           />
+
+          {overLimitWarning && (
+            <p className="text-xs text-woody-taupe">Maximaal 10 bestanden — de rest is weggelaten.</p>
+          )}
 
           <textarea
             placeholder="Beschrijf je post, bijv. 'Pasen sale, 20% korting op alles'"
@@ -146,7 +162,7 @@ export function UploadPicker({ open, position, onClose, onCreated }: Props) {
         <button
           type="button"
           onClick={handleAdd}
-          disabled={!file || uploading}
+          disabled={files.length === 0 || uploading}
           className="mt-4 shrink-0 w-full bg-woody-bordeaux text-woody-cream text-sm font-bold py-3 rounded-xl disabled:opacity-40"
         >
           {uploading ? 'Uploaden...' : 'Toevoegen'}
