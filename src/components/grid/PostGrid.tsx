@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import {
   DndContext, DragEndEvent, DragStartEvent,
@@ -12,22 +12,19 @@ import { CSS } from '@dnd-kit/utilities'
 import { useRouter } from 'next/navigation'
 import { useGridStore } from '@/lib/store/gridStore'
 import { PostCell } from './PostCell'
+import { AddTile } from './AddTile'
 import { SourcePicker } from '@/components/editor/SourcePicker'
 import { ProductPicker } from '@/components/editor/ProductPicker'
 import { UploadPicker } from '@/components/editor/UploadPicker'
+import { sortPostsForFeed, isPlannedPost } from '@/lib/grid/sorting'
 import type { Post } from '@/lib/types'
 
-function SortableCell({ post, onRepick, isRepicking }: { post: Post; onRepick?: () => void; isRepicking?: boolean }) {
+function SortableConceptCell({ post, onRepick, isRepicking }: {
+  post: Post; onRepick?: () => void; isRepicking?: boolean
+}) {
   const router = useRouter()
   const { draggingId } = useGridStore()
   const isDragging = draggingId === post.id
-  const prevDraggingId = useRef<string | null>(null)
-  const wasDragged = useRef<boolean>(false)
-
-  if (prevDraggingId.current === post.id && draggingId !== post.id) {
-    wasDragged.current = true
-  }
-  prevDraggingId.current = draggingId
 
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: post.id })
 
@@ -38,27 +35,27 @@ function SortableCell({ post, onRepick, isRepicking }: { post: Post; onRepick?: 
     touchAction: 'none' as const,
   }
 
-  function handleTap() {
-    if (wasDragged.current) {
-      wasDragged.current = false
-      return
-    }
-    router.push(`/grid/${post.id}`)
-  }
-
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <PostCell post={post} isDragging={isDragging} onTap={handleTap} onRepick={onRepick} isRepicking={isRepicking} />
+      <PostCell
+        post={post}
+        isDragging={isDragging}
+        onTap={() => router.push(`/grid/${post.id}`)}
+        onRepick={onRepick}
+        isRepicking={isRepicking}
+      />
     </div>
   )
 }
 
 export function PostGrid() {
-  const { posts, setOrder, setDragging, updatePost } = useGridStore()
-  const [sourcePickerPosition, setSourcePickerPosition] = useState<number | null>(null)
-  const [productPickerPosition, setProductPickerPosition] = useState<number | null>(null)
-  const [uploadPickerPosition, setUploadPickerPosition] = useState<number | null>(null)
+  const router = useRouter()
+  const { posts, reorderConcepts, setDragging, updatePost, removePost } = useGridStore()
+  const [sourcePickerOpen, setSourcePickerOpen] = useState(false)
+  const [productPickerOpen, setProductPickerOpen] = useState(false)
+  const [uploadPickerOpen, setUploadPickerOpen] = useState(false)
   const [repickingIds, setRepickingIds] = useState<Set<string>>(new Set())
+  const [unlockingIds, setUnlockingIds] = useState<Set<string>>(new Set())
 
   const handleRepick = useCallback(async (post: Post) => {
     setRepickingIds(prev => new Set(prev).add(post.id))
@@ -71,12 +68,7 @@ export function PostGrid() {
       const res = await fetch('/api/posts/repick', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: post.id,
-          position: post.position,
-          excludeProductIds,
-          isPerson: post.isPerson,
-        }),
+        body: JSON.stringify({ id: post.id, excludeProductIds, isPerson: post.isPerson }),
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
@@ -89,19 +81,36 @@ export function PostGrid() {
       toast.error(err instanceof Error ? err.message : 'Opnieuw kiezen mislukt')
     } finally {
       setRepickingIds(prev => {
-        const next = new Set(prev)
-        next.delete(post.id)
-        return next
+        const next = new Set(prev); next.delete(post.id); return next
       })
     }
   }, [updatePost])
 
-  const sorted = [...posts].sort((a, b) => a.position - b.position)
-  const draggable = sorted.filter(p => p.state === 'draft' || p.state === 'conflict')
+  const handleUnlock = useCallback(async (post: Post) => {
+    setUnlockingIds(prev => new Set(prev).add(post.id))
+    try {
+      const res = await fetch(`/api/posts/${post.id}/unlock`, { method: 'POST' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? 'Unlock mislukt')
+      }
+      const concept: Post = await res.json()
+      removePost(post.id)
+      useGridStore.getState().setPosts([concept, ...useGridStore.getState().posts])
+      toast.success('Unlocked — je kunt nu editen')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Unlock mislukt')
+    } finally {
+      setUnlockingIds(prev => {
+        const next = new Set(prev); next.delete(post.id); return next
+      })
+    }
+  }, [removePost])
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-  )
+  const sorted = sortPostsForFeed(posts)
+  const conceptIds = sorted.filter(p => p.scheduledAt === null).map(p => p.id)
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   function handleDragStart(event: DragStartEvent) {
     setDragging(event.active.id as string)
@@ -111,30 +120,11 @@ export function PostGrid() {
     setDragging(null)
     const { active, over } = event
     if (!over || active.id === over.id) return
-
-    const oldIndex = draggable.findIndex(p => p.id === active.id)
-    const newIndex = draggable.findIndex(p => p.id === over.id)
+    const oldIndex = conceptIds.indexOf(active.id as string)
+    const newIndex = conceptIds.indexOf(over.id as string)
     if (oldIndex === -1 || newIndex === -1) return
-    const reordered = arrayMove(draggable, oldIndex, newIndex)
-
-    let draftCursor = 0
-    const merged = sorted.map(p => {
-      if (p.state === 'draft' || p.state === 'conflict') return reordered[draftCursor++]
-      return p
-    })
-
-    const ids = merged.map(p => p.id)
-    setOrder(ids)
-
-    fetch('/api/grid/order', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids }),
-    })
-  }
-
-  function handleCreated(newPost: Post) {
-    updatePost(newPost.id, newPost)
+    const reordered = arrayMove(conceptIds, oldIndex, newIndex)
+    reorderConcepts(reordered)
   }
 
   return (
@@ -145,58 +135,56 @@ export function PostGrid() {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <SortableContext items={draggable.map(p => p.id)} strategy={rectSortingStrategy}>
+        <SortableContext items={conceptIds} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-3 gap-[1px] bg-[#2a2a2a]">
+            <AddTile onTap={() => setSourcePickerOpen(true)} />
             {sorted.map(post =>
-              post.state === 'draft' || post.state === 'conflict'
-                ? <SortableCell key={post.id} post={post} onRepick={() => handleRepick(post)} isRepicking={repickingIds.has(post.id)} />
-                : (
-                  <div key={post.id}>
-                    <PostCell
-                      post={post}
-                      onTap={post.state === 'empty'
-                        ? () => setSourcePickerPosition(post.position)
-                        : undefined}
-                    />
-                  </div>
-                )
+              post.scheduledAt === null ? (
+                <SortableConceptCell
+                  key={post.id}
+                  post={post}
+                  onRepick={() => handleRepick(post)}
+                  isRepicking={repickingIds.has(post.id)}
+                />
+              ) : (
+                <div key={post.id}>
+                  <PostCell
+                    post={post}
+                    onTap={isPlannedPost(post) ? () => router.push(`/grid/${post.id}`) : undefined}
+                    onUnlock={isPlannedPost(post) ? () => handleUnlock(post) : undefined}
+                    isUnlocking={unlockingIds.has(post.id)}
+                  />
+                </div>
+              )
             )}
           </div>
         </SortableContext>
       </DndContext>
 
       <SourcePicker
-        open={sourcePickerPosition !== null}
-        onClose={() => setSourcePickerPosition(null)}
-        onChooseProduct={() => {
-          const pos = sourcePickerPosition
-          setProductPickerPosition(pos)
-          setSourcePickerPosition(null)
-        }}
-        onChooseUpload={() => {
-          const pos = sourcePickerPosition
-          setUploadPickerPosition(pos)
-          setSourcePickerPosition(null)
-        }}
+        open={sourcePickerOpen}
+        onClose={() => setSourcePickerOpen(false)}
+        onChooseProduct={() => { setSourcePickerOpen(false); setProductPickerOpen(true) }}
+        onChooseUpload={() => { setSourcePickerOpen(false); setUploadPickerOpen(true) }}
       />
 
       <ProductPicker
-        open={productPickerPosition !== null}
-        position={productPickerPosition ?? 0}
-        onClose={() => setProductPickerPosition(null)}
+        open={productPickerOpen}
+        position={0}
+        onClose={() => setProductPickerOpen(false)}
         onCreated={(newPost) => {
-          handleCreated(newPost)
-          setProductPickerPosition(null)
+          useGridStore.getState().addConcepts([newPost])
+          setProductPickerOpen(false)
         }}
       />
 
       <UploadPicker
-        open={uploadPickerPosition !== null}
-        position={uploadPickerPosition ?? 0}
-        onClose={() => setUploadPickerPosition(null)}
+        open={uploadPickerOpen}
+        position={0}
+        onClose={() => setUploadPickerOpen(false)}
         onCreated={(newPost) => {
-          handleCreated(newPost)
-          setUploadPickerPosition(null)
+          useGridStore.getState().addConcepts([newPost])
+          setUploadPickerOpen(false)
         }}
       />
     </>
