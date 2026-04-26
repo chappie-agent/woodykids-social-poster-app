@@ -9,5 +9,5 @@ export async function POST(
   // MVP: return a placeholder URL
   const mediaUrl = `https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600`
   console.log(`[stub] Media upload for post ${id}`)
-  return NextResponse.json({ mediaUrl })
+  return NextResponse.json({ mediaUrls: [mediaUrl] })
 }

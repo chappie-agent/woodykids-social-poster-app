@@ -95,7 +95,7 @@ function EditorContent({ postId }: { postId: string }) {
 
   const imageUrl = post.source.kind === 'shopify'
     ? post.source.images[post.source.selectedImageIndices[0]] ?? post.source.images[0]
-    : post.source.mediaUrls[0]
+    : post.source.mediaUrls[0] ?? undefined
 
   const isShopify = post.source.kind === 'shopify'
   const title = post.source.kind === 'shopify' ? post.source.productTitle : 'Eigen post'

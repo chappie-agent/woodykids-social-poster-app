@@ -27,6 +27,10 @@ export async function POST(request: NextRequest) {
   const product = products.find(p => p.id === productId)
   if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 })
 
+  if (product.images.length === 0) {
+    return NextResponse.json({ error: 'Product has no images' }, { status: 422 })
+  }
+
   const source: PostSourceShopify = {
     kind: 'shopify',
     productId: product.id,

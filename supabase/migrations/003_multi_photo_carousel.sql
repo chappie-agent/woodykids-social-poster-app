@@ -18,4 +18,5 @@ SET source = jsonb_set(
 )
 WHERE source->>'kind' = 'upload'
   AND source ? 'mediaUrl'
+  AND source->>'mediaUrl' IS NOT NULL
   AND NOT source ? 'mediaUrls';
