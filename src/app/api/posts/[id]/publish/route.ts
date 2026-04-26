@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { scheduleZernioPost } from '@/lib/zernio/client'
 import { assembleCaption } from '@/lib/zernio/format'
+import { cropImageFromUrl } from '@/lib/image/crop'
 import type { Post, PostState, PostSource, CropData, PostCaption } from '@/lib/types'
+
+const PUBLISH_MEDIA_BUCKET = 'post-media'
 
 type PublishBody = {
   scheduledAt: string
@@ -46,30 +49,65 @@ export async function POST(
     return NextResponse.json({ error: 'Geen caption beschikbaar' }, { status: 400 })
   }
 
-  // Bouw media-URLs op uit de client-snapshot.
+  // Bouw originele media-URLs op uit de client-snapshot.
   const source = clientPost.source
-  let mediaUrls: string[] | undefined
+  let originalMediaUrls: string[] = []
   if (source?.kind === 'shopify') {
     const indices = source.selectedImageIndices ?? [0]
-    const urls = indices.map(i => source.images[i]).filter((url): url is string => typeof url === 'string')
-    if (urls.length) mediaUrls = urls
+    originalMediaUrls = indices.map(i => source.images[i]).filter((url): url is string => typeof url === 'string')
   } else if (source?.kind === 'upload') {
-    if (source.mediaUrls?.length) mediaUrls = source.mediaUrls
+    originalMediaUrls = source.mediaUrls?.filter(Boolean) ?? []
   }
 
   const content = assembleCaption(clientPost.caption)
+  const supabase = await createClient()
 
-  // 1. Zernio eerst — als dit faalt komt er niks in de DB.
+  // 1. Crop alle images naar 4:5 (Instagram-vereiste) en upload naar Supabase
+  //    storage — Zernio krijgt vervolgens publieke URLs van de gecropte versies.
+  let mediaUrls: string[] | undefined
+  if (originalMediaUrls.length > 0) {
+    try {
+      const cropped = await Promise.all(
+        originalMediaUrls.map(async (originalUrl, idx) => {
+          const buffer = await cropImageFromUrl(originalUrl, clientPost.cropData)
+          const path = `cropped/${id}/${Date.now()}-${idx}.jpg`
+          const { error: uploadErr } = await supabase.storage
+            .from(PUBLISH_MEDIA_BUCKET)
+            .upload(path, buffer, { contentType: 'image/jpeg', upsert: true })
+          if (uploadErr) throw new Error(`Upload gecropte image: ${uploadErr.message}`)
+          return supabase.storage.from(PUBLISH_MEDIA_BUCKET).getPublicUrl(path).data.publicUrl
+        }),
+      )
+      mediaUrls = cropped
+    } catch (err) {
+      console.error('[publish] Image crop/upload error:', err)
+      const msg = err instanceof Error ? err.message : 'Onbekende fout'
+      return NextResponse.json({ error: `Foto's voorbereiden mislukt: ${msg}` }, { status: 500 })
+    }
+  }
+
+  // 2. Zernio met de gecropte URLs — als dit faalt komt er niks in de DB.
   let zernioPostId: string
   try {
     zernioPostId = await scheduleZernioPost({ content, scheduledFor: scheduledAt, mediaUrls })
   } catch (err) {
     console.error('[publish] Zernio error:', err)
-    return NextResponse.json({ error: 'Inplannen bij Zernio mislukt' }, { status: 500 })
+    // Probeer Zernio's eigen error-bericht door te geven (bevat vaak nuttige
+    // info zoals aspect-ratio of caption-length issues uit Instagram).
+    let userMessage = 'Inplannen bij Zernio mislukt'
+    if (err instanceof Error) {
+      const match = err.message.match(/Zernio \d+: (\{.*\})/)
+      if (match) {
+        try {
+          const parsed = JSON.parse(match[1]) as { error?: string }
+          if (parsed.error) userMessage = parsed.error
+        } catch {/* fall through */}
+      }
+    }
+    return NextResponse.json({ error: userMessage }, { status: 500 })
   }
 
-  // 2. Pas bij Zernio-success: INSERT in Supabase met state='locked'.
-  const supabase = await createClient()
+  // 3. Pas bij Zernio-success: INSERT in Supabase met state='locked'.
   const insertRow = {
     id,
     state: 'locked' as const,

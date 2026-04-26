@@ -91,15 +91,18 @@ function EditorContent({ postId }: { postId: string }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scheduledAt: isoDateTime, post }),
       })
-      if (!res.ok) throw new Error('publish failed')
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(body.error ?? 'Inplannen mislukt')
+      }
       const created: Post = await res.json()
       // Replace concept met locked-versie in de store
       removePost(postId)
       setPosts([created, ...useGridStore.getState().posts])
       toast.success('Ingepland voor Zernio 🎉')
       router.push('/grid')
-    } catch {
-      toast.error('Inplannen mislukt. Probeer opnieuw.')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Inplannen mislukt. Probeer opnieuw.', { duration: 8000 })
     } finally {
       setBusy(false)
     }
