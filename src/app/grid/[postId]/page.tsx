@@ -94,7 +94,7 @@ function EditorContent({ postId }: { postId: string }) {
   if (!post || !post.source) return null
 
   const imageUrl = post.source.kind === 'shopify'
-    ? post.source.images[post.source.selectedImageIndex]
+    ? post.source.images[post.source.selectedImageIndices[0]]
     : post.source.mediaUrl
 
   const isShopify = post.source.kind === 'shopify'
@@ -159,10 +159,10 @@ function EditorContent({ postId }: { postId: string }) {
       {isShopify && post.source.kind === 'shopify' && (
         <PhotoSelector
           images={post.source.images}
-          selectedIndex={post.source.selectedImageIndex}
-          onChange={(selectedImageIndex) => {
+          selectedIndex={post.source.selectedImageIndices[0] ?? 0}
+          onChange={(idx) => {
             if (post.source?.kind !== 'shopify') return
-            save({ source: { ...post.source, selectedImageIndex } })
+            save({ source: { ...post.source, selectedImageIndices: [idx] } })
           }}
         />
       )}

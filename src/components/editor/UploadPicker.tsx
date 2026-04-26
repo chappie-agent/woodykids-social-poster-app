@@ -61,7 +61,7 @@ export function UploadPicker({ open, position, onClose, onCreated }: Props) {
       const res = await fetch('/api/posts/create-upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mediaUrl: publicUrl, mediaType, userPrompt, position }),
+        body: JSON.stringify({ mediaUrls: [publicUrl], mediaType, userPrompt, position }),
       })
       if (!res.ok) {
         supabase.storage.from('post-media').remove([path]).catch(() => {})

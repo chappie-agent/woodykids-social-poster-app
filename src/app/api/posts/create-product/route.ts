@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     productTitle: product.title,
     images: product.images,
     variants: product.variants,
-    selectedImageIndices: [1],
+    selectedImageIndices: [Math.min(1, product.images.length - 1)],
   }
 
   const { data, error } = await supabase

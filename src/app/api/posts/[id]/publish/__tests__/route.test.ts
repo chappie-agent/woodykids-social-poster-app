@@ -132,7 +132,7 @@ describe('POST /api/posts/[id]/publish', () => {
     expect(updateMock).not.toHaveBeenCalled()
   })
 
-  it('extracts mediaUrl as imageUrl for upload posts', async () => {
+  it('extracts mediaUrls for upload posts', async () => {
     const { createClient } = await import('@/lib/supabase/server')
     const { scheduleZernioPost } = await import('@/lib/zernio/client')
 
