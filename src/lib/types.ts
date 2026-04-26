@@ -58,17 +58,18 @@ export type PostCaption = {
   hashtags: Hashtag[]
 }
 
-export type PostState = 'empty' | 'draft' | 'conflict' | 'locked'
+export type PostState = 'locked'
 
 export type Post = {
   id: string
   state: PostState
-  position: number
+  position: number | null
   source: PostSource | null
   cropData: CropData
   caption: PostCaption | null
   scheduledAt: string | null   // ISO 8601
   isPerson: boolean
+  zernioPostId?: string
 }
 
 export type ToneOfVoice = {
