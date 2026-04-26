@@ -52,7 +52,7 @@ export async function POST(
   const source = postRow.source as PostSource | null
   let mediaUrls: string[] | undefined
   if (source?.kind === 'shopify') {
-    const urls = source.selectedImageIndices.map(i => source.images[i]).filter(Boolean) as string[]
+    const urls = source.selectedImageIndices.map(i => source.images[i]).filter((url): url is string => typeof url === 'string')
     if (urls.length) mediaUrls = urls
   } else if (source?.kind === 'upload') {
     if (source.mediaUrls.length) mediaUrls = source.mediaUrls
