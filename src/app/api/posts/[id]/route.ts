@@ -26,10 +26,13 @@ export async function GET(
     .from('posts')
     .select('*')
     .eq('id', id)
-    .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(mapPost(data))
+  if (error) {
+    console.error('[GET /api/posts/:id] Supabase error:', error.message)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+  if (!data || data.length === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  return NextResponse.json(mapPost(data[0]))
 }
 
 export async function PUT(
@@ -54,10 +57,16 @@ export async function PUT(
     .update(dbPatch)
     .eq('id', id)
     .select()
-    .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(mapPost(data))
+  if (error) {
+    console.error('[PUT /api/posts/:id] Supabase error:', error.message, error.code)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+  if (!data || data.length === 0) {
+    console.error('[PUT /api/posts/:id] No row returned for id:', id, '— check RLS or if post exists')
+    return NextResponse.json({ error: 'Post not found or access denied' }, { status: 404 })
+  }
+  return NextResponse.json(mapPost(data[0]))
 }
 
 export async function DELETE(

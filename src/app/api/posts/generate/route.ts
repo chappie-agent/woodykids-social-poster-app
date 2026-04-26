@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getProducts } from '@/lib/shopify/client'
-import type { Post, PostCaption } from '@/lib/types'
+import { tokenize, isTooSimilar } from '@/lib/shopify/similarity'
+import type { Post, PostCaption, ShopifyProduct } from '@/lib/types'
 import { randomUUID } from 'crypto'
 
 const makeCaption = (): PostCaption => ({
@@ -17,11 +18,16 @@ const makeCaption = (): PostCaption => ({
 })
 
 export async function POST(request: NextRequest) {
-  const { count, startPosition } = await request.json() as { count: number; startPosition: number }
+  const { count, startPosition, existingProductIds } = await request.json() as {
+    count: number
+    startPosition: number
+    existingProductIds?: string[]
+  }
 
-  let products
+  let products: ShopifyProduct[]
   try {
-    products = (await getProducts()).filter(p => p.images.length > 0)
+    // Need >= 2 images so we can always start from index 1 (cover is never index 0)
+    products = (await getProducts()).filter(p => p.images.length >= 2)
   } catch (err) {
     console.error('[/api/posts/generate] Shopify fetch failed', err)
     return NextResponse.json({ error: 'Failed to fetch Shopify products' }, { status: 502 })
@@ -31,11 +37,41 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No Shopify products with images available' }, { status: 404 })
   }
 
-  const pool = [...products].sort(() => Math.random() - 0.5)
+  const shuffled = [...products].sort(() => Math.random() - 0.5)
+
+  // Seed similarity tracking with already-shown products in the grid
+  const existingTokens: Set<string>[] = []
+  if (existingProductIds && existingProductIds.length > 0) {
+    const existingSet = new Set(existingProductIds)
+    for (const p of products) if (existingSet.has(p.id)) existingTokens.push(tokenize(p.title))
+  }
+
+  // Greedy pick: skip products too similar to any already-picked or already-shown
+  const picked: ShopifyProduct[] = []
+  const pickedTokens: Set<string>[] = [...existingTokens]
+  for (const p of shuffled) {
+    if (picked.length >= count) break
+    const tokens = tokenize(p.title)
+    if (isTooSimilar(tokens, pickedTokens)) continue
+    picked.push(p)
+    pickedTokens.push(tokens)
+  }
+  // Fallback: if we couldn't fill count due to too-strict similarity, top up from remaining
+  if (picked.length < count) {
+    const have = new Set(picked.map(p => p.id))
+    for (const p of shuffled) {
+      if (picked.length >= count) break
+      if (!have.has(p.id)) picked.push(p)
+    }
+  }
 
   const newPosts: Post[] = Array.from({ length: count }, (_, i) => {
-    const product = pool[i % pool.length]
+    const product = picked[i % picked.length]
     const isPerson = i % 2 === 0
+    const selectedImageIndices = Array.from(
+      { length: Math.min(5, product.images.length - 1) },
+      (_, k) => k + 1,
+    )
     return {
       id: randomUUID(),
       state: 'draft',
@@ -46,7 +82,7 @@ export async function POST(request: NextRequest) {
         productId: product.id,
         productTitle: product.title,
         images: product.images,
-        selectedImageIndices: [Math.min(1, product.images.length - 1)],
+        selectedImageIndices,
       },
       cropData: { x: 0, y: 0, scale: 1 },
       caption: makeCaption(),

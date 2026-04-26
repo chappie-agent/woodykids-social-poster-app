@@ -27,6 +27,25 @@ export default function GridPage() {
       .then((fetched: Post[]) => {
         setPosts(fetched)
         setLoading(false)
+
+        // Background: generate captions for draft posts that have none yet
+        const needsCaptions = fetched.filter(
+          p => (p.state === 'draft' || p.state === 'conflict') && p.caption === null && p.source,
+        )
+        for (const post of needsCaptions) {
+          fetch(`/api/posts/${post.id}/generate-caption`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ source: post.source }),
+          })
+            .then(r => (r.ok ? r.json() : null))
+            .then((updated: Partial<Post> | null) => {
+              if (updated?.caption) {
+                useGridStore.getState().updatePost(post.id, { caption: updated.caption })
+              }
+            })
+            .catch(() => {})
+        }
       })
       .catch(() => setLoading(false))
   }, [])

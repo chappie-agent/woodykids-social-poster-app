@@ -17,7 +17,7 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev -- -p 3001',
     url: 'http://localhost:3001',
-    reuseExistingServer: false,
+    reuseExistingServer: true,
     timeout: 120_000,
     env: { E2E_TEST: 'true' },
   },

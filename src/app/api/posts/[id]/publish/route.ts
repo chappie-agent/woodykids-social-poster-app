@@ -4,6 +4,11 @@ import { scheduleZernioPost } from '@/lib/zernio/client'
 import { assembleCaption } from '@/lib/zernio/format'
 import type { Post, PostState, PostSource, CropData, PostCaption } from '@/lib/types'
 
+type PublishBody = {
+  scheduledAt: string
+  post?: Post
+}
+
 function mapPost(row: Record<string, unknown>): Post {
   return {
     id: row.id as string,
@@ -22,13 +27,13 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params
-  let scheduledAt: string
+  let body: PublishBody
   try {
-    const body = await request.json() as { scheduledAt: string }
-    scheduledAt = body.scheduledAt
+    body = await request.json() as PublishBody
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
+  const { scheduledAt, post: clientPost } = body
 
   if (!scheduledAt || isNaN(Date.parse(scheduledAt))) {
     return NextResponse.json({ error: 'Ongeldige scheduledAt waarde' }, { status: 400 })
@@ -36,13 +41,43 @@ export async function POST(
 
   const supabase = await createClient()
 
-  const { data: postRow, error: postError } = await supabase
+  const { data: postRows, error: postError } = await supabase
     .from('posts')
     .select('*')
     .eq('id', id)
-    .single()
 
   if (postError) return NextResponse.json({ error: postError.message }, { status: 500 })
+  let postRow = postRows?.[0]
+
+  // Posts are created client-side by /api/posts/generate and only persisted on publish.
+  // If the row isn't in the DB yet, insert it from the client-supplied snapshot.
+  if (!postRow) {
+    if (!clientPost) {
+      return NextResponse.json({ error: 'Post not found or access denied' }, { status: 404 })
+    }
+    const insertRow = {
+      id,
+      state: clientPost.state,
+      position: clientPost.position,
+      source: clientPost.source,
+      crop_data: clientPost.cropData,
+      caption: clientPost.caption,
+      scheduled_at: clientPost.scheduledAt,
+      is_person: clientPost.isPerson,
+    }
+    const { data: inserted, error: insertError } = await supabase
+      .from('posts')
+      .insert(insertRow)
+      .select()
+    if (insertError) {
+      console.error('[publish] Insert error:', insertError.message)
+      return NextResponse.json({ error: insertError.message }, { status: 500 })
+    }
+    if (!inserted || inserted.length === 0) {
+      return NextResponse.json({ error: 'Post kon niet worden opgeslagen' }, { status: 500 })
+    }
+    postRow = inserted[0]
+  }
 
   const caption = postRow.caption as PostCaption | null
   if (!caption) {
@@ -76,8 +111,10 @@ export async function POST(
     .update({ state: 'locked', scheduled_at: scheduledAt })
     .eq('id', id)
     .select()
-    .single()
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
-  return NextResponse.json(mapPost(data))
+  if (!data || data.length === 0) {
+    return NextResponse.json({ error: 'Post not found or access denied' }, { status: 404 })
+  }
+  return NextResponse.json(mapPost(data[0]))
 }

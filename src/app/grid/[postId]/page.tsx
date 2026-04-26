@@ -80,9 +80,13 @@ function EditorContent({ postId }: { postId: string }) {
     setIsGenerating(true)
     setGenerateError(null)
     try {
-      const res = await fetch(`/api/posts/${post.id}/generate-caption`, { method: 'POST' })
+      const res = await fetch(`/api/posts/${post.id}/generate-caption`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: post.source }),
+      })
       if (!res.ok) throw new Error('failed')
-      const updated: Post = await res.json()
+      const updated = await res.json() as Partial<Post>
       updatePost(post.id, updated)
     } catch {
       setGenerateError('Caption generatie mislukt. Probeer opnieuw.')
@@ -109,12 +113,21 @@ function EditorContent({ postId }: { postId: string }) {
   async function save(patch: Partial<Post>) {
     setSaving(true)
     updatePost(postId, patch)
-    await fetch(`/api/posts/${postId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(patch),
-    })
-    setSaving(false)
+    try {
+      const res = await fetch(`/api/posts/${postId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        toast.error(body.error ?? 'Opslaan mislukt')
+      }
+    } catch {
+      toast.error('Opslaan mislukt')
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function handleSchedule(isoDateTime: string) {
@@ -123,7 +136,7 @@ function EditorContent({ postId }: { postId: string }) {
       const res = await fetch(`/api/posts/${postId}/publish`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scheduledAt: isoDateTime }),
+        body: JSON.stringify({ scheduledAt: isoDateTime, post }),
       })
       if (!res.ok) throw new Error('publish failed')
       const updated: Post = await res.json()

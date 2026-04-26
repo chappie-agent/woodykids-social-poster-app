@@ -5,15 +5,59 @@ type ShopifyApiVariant = { id: number; title: string; price: string }
 type ShopifyApiProduct = {
   id: number
   title: string
+  status: string
   images: ShopifyApiImage[]
   variants: ShopifyApiVariant[]
 }
 type ShopifyApiCollection = { id: number; title: string }
 type ShopifyApiCollect = { product_id: number; collection_id: number }
 
-function shopifyHeaders() {
-  const token = process.env.SHOPIFY_ADMIN_TOKEN
-  if (!token) throw new Error('SHOPIFY_ADMIN_TOKEN is not set')
+// Token cache — refreshed 60s before expiry (tokens live ~24h)
+let cachedToken: string | null = null
+let tokenExpiresAt = 0
+
+async function getAccessToken(): Promise<string> {
+  // Static token fallback (custom app / non-expiring)
+  const staticToken = process.env.SHOPIFY_ADMIN_TOKEN
+  const clientId = process.env.SHOPIFY_CLIENT_ID
+  const clientSecret = process.env.SHOPIFY_CLIENT_SECRET
+  const domain = process.env.SHOPIFY_STORE_DOMAIN
+  if (!domain) throw new Error('SHOPIFY_STORE_DOMAIN is not set')
+
+  // If no client credentials, fall back to static token
+  if (!clientId || !clientSecret) {
+    if (!staticToken) throw new Error('SHOPIFY_ADMIN_TOKEN or SHOPIFY_CLIENT_ID+SHOPIFY_CLIENT_SECRET must be set')
+    return staticToken
+  }
+
+  // Return cached token if still valid (with 60s buffer)
+  if (cachedToken && Date.now() < tokenExpiresAt - 60_000) {
+    return cachedToken
+  }
+
+  const res = await fetch(`https://${domain}/admin/oauth/access_token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: clientId,
+      client_secret: clientSecret,
+    }),
+  })
+
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`Shopify token fetch failed ${res.status}: ${body}`)
+  }
+
+  const { access_token, expires_in } = await res.json() as { access_token: string; expires_in: number }
+  cachedToken = access_token
+  tokenExpiresAt = Date.now() + expires_in * 1000
+  return access_token
+}
+
+async function shopifyHeaders() {
+  const token = await getAccessToken()
   return { 'X-Shopify-Access-Token': token }
 }
 
@@ -27,13 +71,14 @@ export async function getProducts(): Promise<ShopifyProduct[]> {
   const url = baseUrl()
 
   // 250 is the Shopify API maximum page size. Pagination is not implemented (future work).
+  const headers = await shopifyHeaders()
   const [productsRes, collectsRes] = await Promise.all([
-    fetch(`${url}/products.json?limit=250&fields=id,title,images,variants`, {
-      headers: shopifyHeaders(),
+    fetch(`${url}/products.json?status=active&limit=250&fields=id,title,status,images,variants`, {
+      headers,
       next: { revalidate: 300 },
     }),
     fetch(`${url}/collects.json?limit=250`, {
-      headers: shopifyHeaders(),
+      headers,
       next: { revalidate: 300 },
     }),
   ])
@@ -62,7 +107,7 @@ export async function getProducts(): Promise<ShopifyProduct[]> {
     collectionMap.set(pid, [...existing, String(collect.collection_id)])
   }
 
-  return products.map(p => ({
+  return products.filter(p => p.status === 'active').map(p => ({
     id: String(p.id),
     title: p.title,
     images: p.images.map(img => img.src),
@@ -82,7 +127,7 @@ export async function getCollections(): Promise<ShopifyCollection[]> {
 
   // 250 is the Shopify API maximum page size. Pagination is not implemented (future work).
   const res = await fetch(`${url}/custom_collections.json?limit=250`, {
-    headers: shopifyHeaders(),
+    headers: await shopifyHeaders(),
     next: { revalidate: 300 },
   })
 

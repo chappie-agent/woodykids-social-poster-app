@@ -1,6 +1,7 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import {
   DndContext, DragEndEvent, DragStartEvent,
   PointerSensor, useSensor, useSensors,
@@ -16,7 +17,7 @@ import { ProductPicker } from '@/components/editor/ProductPicker'
 import { UploadPicker } from '@/components/editor/UploadPicker'
 import type { Post } from '@/lib/types'
 
-function SortableCell({ post }: { post: Post }) {
+function SortableCell({ post, onRepick, isRepicking }: { post: Post; onRepick?: () => void; isRepicking?: boolean }) {
   const router = useRouter()
   const { draggingId } = useGridStore()
   const isDragging = draggingId === post.id
@@ -47,7 +48,7 @@ function SortableCell({ post }: { post: Post }) {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <PostCell post={post} isDragging={isDragging} onTap={handleTap} />
+      <PostCell post={post} isDragging={isDragging} onTap={handleTap} onRepick={onRepick} isRepicking={isRepicking} />
     </div>
   )
 }
@@ -57,6 +58,43 @@ export function PostGrid() {
   const [sourcePickerPosition, setSourcePickerPosition] = useState<number | null>(null)
   const [productPickerPosition, setProductPickerPosition] = useState<number | null>(null)
   const [uploadPickerPosition, setUploadPickerPosition] = useState<number | null>(null)
+  const [repickingIds, setRepickingIds] = useState<Set<string>>(new Set())
+
+  const handleRepick = useCallback(async (post: Post) => {
+    setRepickingIds(prev => new Set(prev).add(post.id))
+    try {
+      const current = useGridStore.getState().posts
+      const excludeProductIds = current
+        .map(p => p.source?.kind === 'shopify' ? p.source.productId : null)
+        .filter((id): id is string => Boolean(id))
+
+      const res = await fetch('/api/posts/repick', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: post.id,
+          position: post.position,
+          excludeProductIds,
+          isPerson: post.isPerson,
+        }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? 'Repick failed')
+      }
+      const newPost: Post = await res.json()
+      updatePost(post.id, newPost)
+      toast.success('Nieuw product gekozen')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Opnieuw kiezen mislukt')
+    } finally {
+      setRepickingIds(prev => {
+        const next = new Set(prev)
+        next.delete(post.id)
+        return next
+      })
+    }
+  }, [updatePost])
 
   const sorted = [...posts].sort((a, b) => a.position - b.position)
   const draggable = sorted.filter(p => p.state === 'draft' || p.state === 'conflict')
@@ -111,7 +149,7 @@ export function PostGrid() {
           <div className="grid grid-cols-3 gap-[1px] bg-[#2a2a2a]">
             {sorted.map(post =>
               post.state === 'draft' || post.state === 'conflict'
-                ? <SortableCell key={post.id} post={post} />
+                ? <SortableCell key={post.id} post={post} onRepick={() => handleRepick(post)} isRepicking={repickingIds.has(post.id)} />
                 : (
                   <div key={post.id}>
                     <PostCell

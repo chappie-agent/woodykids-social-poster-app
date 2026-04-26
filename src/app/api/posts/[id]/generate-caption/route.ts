@@ -20,37 +20,43 @@ function mapPost(row: Record<string, unknown>): Post {
 }
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params
   const supabase = await createClient()
 
-  // Haal post op
-  const { data: postRow, error: postError } = await supabase
-    .from('posts')
-    .select('*')
-    .eq('id', id)
-    .single()
+  // Client kan de source meesturen — dan hoeven we de DB niet te raadplegen
+  const body = await request.json().catch(() => ({})) as { source?: PostSource }
+  let source: PostSource | null = body.source ?? null
 
-  if (postError) return NextResponse.json({ error: postError.message }, { status: 500 })
+  // Haal post op uit DB als source niet meegestuurd is
+  if (!source) {
+    const { data: postRows, error: postError } = await supabase
+      .from('posts')
+      .select('source')
+      .eq('id', id)
 
-  const source = postRow.source as PostSource | null
+    if (postError) {
+      console.error('[generate-caption] Post fetch error:', postError.message)
+      return NextResponse.json({ error: postError.message }, { status: 500 })
+    }
+    if (!postRows || postRows.length === 0) {
+      return NextResponse.json({ error: 'Post not found or access denied' }, { status: 404 })
+    }
+    source = postRows[0].source as PostSource | null
+  }
+
   if (!source || (source.kind !== 'shopify' && source.kind !== 'upload')) {
     return NextResponse.json({ error: 'Unsupported post source' }, { status: 400 })
   }
 
   // Haal tone of voice op
-  const { data: settings, error: settingsError } = await supabase
+  const { data: settingsRows } = await supabase
     .from('settings')
     .select('tone_of_voice')
     .eq('id', 1)
-    .single()
-
-  if (settingsError) {
-    console.warn('[generate-caption] Settings fetch failed, using empty tone:', settingsError.message)
-  }
-  const toneOfVoice = settings?.tone_of_voice ?? ''
+  const toneOfVoice = settingsRows?.[0]?.tone_of_voice ?? ''
 
   // Roep Claude aan
   let responseText: string
@@ -80,7 +86,7 @@ export async function POST(
     return NextResponse.json({ error: 'AI generatie mislukt' }, { status: 500 })
   }
 
-  // Parseer en sla op
+  // Parseer caption
   let caption: PostCaption
   try {
     caption = parseCaptionResponse(responseText)
@@ -89,13 +95,22 @@ export async function POST(
     return NextResponse.json({ error: 'Ongeldige AI-response' }, { status: 500 })
   }
 
+  // Sla op in DB — best effort (post hoeft niet in DB te bestaan)
   const { data, error: updateError } = await supabase
     .from('posts')
     .update({ caption })
     .eq('id', id)
     .select()
-    .single()
 
-  if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
-  return NextResponse.json(mapPost(data))
+  if (updateError) {
+    console.error('[generate-caption] Update error:', updateError.message)
+  }
+
+  // Geef de caption altijd terug, ook als opslaan mislukt
+  if (data && data.length > 0) {
+    return NextResponse.json(mapPost(data[0]))
+  }
+
+  // Post bestaat niet in DB: stuur caption terug zodat de client hem lokaal kan tonen
+  return NextResponse.json({ id, caption } as Partial<Post>)
 }
