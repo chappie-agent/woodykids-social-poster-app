@@ -8,8 +8,8 @@ type Props = {
 
 function getImageUrl(post: Post): string | null {
   if (!post.source) return null
-  if (post.source.kind === 'shopify') return post.source.images[post.source.selectedImageIndex] ?? post.source.images[0]
-  return post.source.mediaUrl
+  if (post.source.kind === 'shopify') return post.source.images[post.source.selectedImageIndices[0]] ?? post.source.images[0]
+  return post.source.mediaUrls[0]
 }
 
 function formatDate(iso: string) {

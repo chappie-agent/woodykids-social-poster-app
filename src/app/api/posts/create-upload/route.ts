@@ -16,8 +16,8 @@ function mapPost(row: Record<string, unknown>): Post {
 }
 
 export async function POST(request: NextRequest) {
-  const { mediaUrl, mediaType, userPrompt, position } = await request.json() as {
-    mediaUrl: string
+  const { mediaUrls, mediaType, userPrompt, position } = await request.json() as {
+    mediaUrls: string[]
     mediaType: 'image' | 'video'
     userPrompt: string
     position: number
@@ -27,7 +27,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid mediaType' }, { status: 400 })
   }
 
-  const source: PostSourceUpload = { kind: 'upload', mediaUrl, mediaType, userPrompt }
+  if (!Array.isArray(mediaUrls) || mediaUrls.length === 0) {
+    return NextResponse.json({ error: 'mediaUrls must be a non-empty array' }, { status: 400 })
+  }
+
+  const source: PostSourceUpload = { kind: 'upload', mediaUrls, mediaType, userPrompt }
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

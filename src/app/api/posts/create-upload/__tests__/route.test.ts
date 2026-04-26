@@ -9,7 +9,7 @@ const mockPostRow = {
   position: 3,
   source: {
     kind: 'upload',
-    mediaUrl: 'https://storage.supabase.co/image.jpg',
+    mediaUrls: ['https://storage.supabase.co/image.jpg'],
     mediaType: 'image',
     userPrompt: 'Pasen sale',
   },
@@ -50,7 +50,7 @@ describe('POST /api/posts/create-upload', () => {
 
     const { POST } = await import('../route')
     const res = await POST(makeRequest({
-      mediaUrl: 'https://storage.supabase.co/image.jpg',
+      mediaUrls: ['https://storage.supabase.co/image.jpg'],
       mediaType: 'image',
       userPrompt: 'Pasen sale',
       position: 3,
@@ -59,7 +59,7 @@ describe('POST /api/posts/create-upload', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.source.kind).toBe('upload')
-    expect(body.source.mediaUrl).toBe('https://storage.supabase.co/image.jpg')
+    expect(body.source.mediaUrls).toEqual(['https://storage.supabase.co/image.jpg'])
     expect(body.source.mediaType).toBe('image')
     expect(body.source.userPrompt).toBe('Pasen sale')
     expect(body.state).toBe('draft')
@@ -74,7 +74,7 @@ describe('POST /api/posts/create-upload', () => {
 
     const { POST } = await import('../route')
     const res = await POST(makeRequest({
-      mediaUrl: 'https://storage.supabase.co/image.jpg',
+      mediaUrls: ['https://storage.supabase.co/image.jpg'],
       mediaType: 'image',
       userPrompt: 'Pasen sale',
       position: 3,

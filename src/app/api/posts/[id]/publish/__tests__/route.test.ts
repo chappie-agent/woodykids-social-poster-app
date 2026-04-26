@@ -21,7 +21,7 @@ const mockPostRow = {
     productId: 'prod-1',
     productTitle: 'Test',
     images: ['https://cdn.shopify.com/image.jpg'],
-    selectedImageIndex: 0,
+    selectedImageIndices: [0],
   },
   crop_data: { x: 0, y: 0, scale: 1 },
   caption: mockCaption,
@@ -142,7 +142,7 @@ describe('POST /api/posts/[id]/publish', () => {
       position: 0,
       source: {
         kind: 'upload',
-        mediaUrl: 'https://storage.supabase.co/image.jpg',
+        mediaUrls: ['https://storage.supabase.co/image.jpg'],
         mediaType: 'image',
         userPrompt: 'Pasen',
       },

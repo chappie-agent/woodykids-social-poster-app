@@ -57,7 +57,7 @@ describe('POST /api/posts/[id]/generate-caption', () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabaseMock({
       id: 'post-1', state: 'draft', position: 0, is_person: false, crop_data: { x: 0, y: 0, scale: 1 },
       caption: null, scheduled_at: null,
-      source: { kind: 'shopify', productId: 'p1', productTitle: 'Test', images: ['https://img.jpg'], selectedImageIndex: 0 },
+      source: { kind: 'shopify', productId: 'p1', productTitle: 'Test', images: ['https://img.jpg'], selectedImageIndices: [0] },
     }) as never)
     vi.mocked(createAnthropicClient).mockReturnValue({
       messages: { create: vi.fn().mockResolvedValue(mockAnthropicResponse) },
@@ -79,7 +79,7 @@ describe('POST /api/posts/[id]/generate-caption', () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabaseMock({
       id: 'post-1', state: 'draft', position: 0, is_person: false, crop_data: { x: 0, y: 0, scale: 1 },
       caption: null, scheduled_at: null,
-      source: { kind: 'upload', mediaUrl: 'https://storage.supabase.co/img.jpg', mediaType: 'image', userPrompt: 'Pasen' },
+      source: { kind: 'upload', mediaUrls: ['https://storage.supabase.co/img.jpg'], mediaType: 'image', userPrompt: 'Pasen' },
     }) as never)
     vi.mocked(createAnthropicClient).mockReturnValue({
       messages: { create: vi.fn().mockResolvedValue(mockAnthropicResponse) },
