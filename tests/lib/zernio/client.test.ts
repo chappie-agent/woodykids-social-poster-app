@@ -38,7 +38,7 @@ describe('scheduleZernioPost', () => {
 })
 
 describe('cancelZernioPost', () => {
-  it('issues DELETE to /v1/posts with postId query param', async () => {
+  it('issues DELETE to /v1/posts/{id} (path param)', async () => {
     const fetchMock = vi.spyOn(global, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ success: true }), { status: 200 })
     )
@@ -46,7 +46,7 @@ describe('cancelZernioPost', () => {
     await cancelZernioPost('zernio-abc')
 
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://zernio.com/api/v1/posts?postId=zernio-abc',
+      'https://zernio.com/api/v1/posts/zernio-abc',
       expect.objectContaining({
         method: 'DELETE',
         headers: expect.objectContaining({ Authorization: 'Bearer test-key' }),
