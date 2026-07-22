@@ -17,7 +17,7 @@ function LoginForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!email.endsWith('@woodykids.com')) {
+    if (!email.toLowerCase().endsWith('@woodykids.com')) {
       setError('Alleen @woodykids.com accounts hebben toegang.')
       return
     }

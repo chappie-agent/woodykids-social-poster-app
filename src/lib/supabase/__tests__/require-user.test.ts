@@ -44,6 +44,14 @@ describe('requireUser', () => {
     expect(user?.email).toBe('chris@woodykids.com')
   })
 
+  it('laat een gemengd-hoofdlettergebruik @woodykids.com adres door', async () => {
+    const { createClient } = await import('@/lib/supabase/server')
+    vi.mocked(createClient).mockResolvedValue(mockClient({ email: 'Chris@WoodyKids.com' }) as never)
+    const { requireUser } = await import('@/lib/supabase/require-user')
+    const { response } = await requireUser()
+    expect(response).toBeNull()
+  })
+
   it('bypasst auth wanneer E2E_TEST=true', async () => {
     process.env.E2E_TEST = 'true'
     const { requireUser } = await import('@/lib/supabase/require-user')

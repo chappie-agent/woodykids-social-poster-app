@@ -32,7 +32,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Logged in but wrong domain → sign out and redirect
-  if (user && !user.email?.endsWith('@woodykids.com')) {
+  if (user && !user.email?.toLowerCase().endsWith('@woodykids.com')) {
     await supabase.auth.signOut()
     const url = new URL('/login', request.url)
     url.searchParams.set('error', 'unauthorized')

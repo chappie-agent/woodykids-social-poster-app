@@ -15,7 +15,7 @@ export async function requireUser(): Promise<RequireUserResult> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user || !user.email?.endsWith('@woodykids.com')) {
+  if (!user || !user.email?.toLowerCase().endsWith('@woodykids.com')) {
     return { user: null, response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
   }
   return { user, response: null }
