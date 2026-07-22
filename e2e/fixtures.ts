@@ -16,7 +16,7 @@ const makeCaption = (
 
 export const SHOPIFY_POST: Post = {
   id: 'test-shopify-1',
-  state: 'draft',
+  state: 'locked',
   position: 0,
   isPerson: false,
   source: {
@@ -42,7 +42,7 @@ export const SHOPIFY_POST: Post = {
 
 export const UPLOAD_POST: Post = {
   id: 'test-upload-1',
-  state: 'draft',
+  state: 'locked',
   position: 1,
   isPerson: false,
   source: {
@@ -63,7 +63,7 @@ export const UPLOAD_POST: Post = {
 
 export const EMPTY_POST: Post = {
   id: 'test-empty-1',
-  state: 'empty',
+  state: 'locked',
   position: 2,
   isPerson: false,
   source: null,
@@ -96,7 +96,7 @@ export const LOCKED_POST: Post = {
 
 export const CONFLICT_POST: Post = {
   id: 'test-conflict-1',
-  state: 'conflict',
+  state: 'locked',
   position: 4,
   isPerson: false,
   source: {
