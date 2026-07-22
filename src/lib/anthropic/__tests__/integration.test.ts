@@ -83,7 +83,7 @@ function assembledLength(caption: ReturnType<typeof parseCaptionResponse>): numb
   return [opener, middle, closer, hashtags].join('\n\n').length
 }
 
-describe('Anthropic caption generation — real API', () => {
+describe.skipIf(!process.env.ANTHROPIC_API_KEY?.trim())('Anthropic caption generation — real API', () => {
   it('generates a valid Dutch caption for a Shopify product with tone of voice', async () => {
     const caption = await callClaude(SHOPIFY_SOURCE, TONE_OF_VOICE)
 
