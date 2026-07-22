@@ -1,6 +1,7 @@
 // src/app/api/posts/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/supabase/require-user'
 import type { Post, PostState, PostSource, CropData, PostCaption } from '@/lib/types'
 
 function mapPost(row: Record<string, unknown>): Post {
@@ -21,6 +22,9 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const { response } = await requireUser()
+  if (response) return response
+
   const { id } = await params
   const supabase = await createClient()
   const { data, error } = await supabase.from('posts').select('*').eq('id', id)
@@ -33,6 +37,9 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const { response } = await requireUser()
+  if (response) return response
+
   const { id } = await params
   const supabase = await createClient()
   const { error } = await supabase.from('posts').delete().eq('id', id)

@@ -1,6 +1,7 @@
 // src/app/api/posts/create-product/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/supabase/require-user'
 import { getProducts } from '@/lib/shopify/client'
 import type { Post, PostState, PostSource, CropData, PostCaption, PostSourceShopify } from '@/lib/types'
 
@@ -18,6 +19,9 @@ function mapPost(row: Record<string, unknown>): Post {
 }
 
 export async function POST(request: NextRequest) {
+  const { response } = await requireUser()
+  if (response) return response
+
   const { productId, position } = await request.json() as { productId: string; position: number }
 
   const supabase = await createClient()

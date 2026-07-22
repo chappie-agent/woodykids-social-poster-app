@@ -1,6 +1,7 @@
 // src/app/api/posts/[id]/unlock/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/supabase/require-user'
 import { cancelZernioPost } from '@/lib/zernio/client'
 import type { Post, PostState, PostSource, CropData, PostCaption } from '@/lib/types'
 
@@ -22,6 +23,9 @@ export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const { response } = await requireUser()
+  if (response) return response
+
   const { id } = await params
   const supabase = await createClient()
 

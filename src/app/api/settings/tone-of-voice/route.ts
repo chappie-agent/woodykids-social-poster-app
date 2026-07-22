@@ -1,8 +1,12 @@
 // src/app/api/settings/tone-of-voice/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/supabase/require-user'
 
 export async function GET() {
+  const { response } = await requireUser()
+  if (response) return response
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('settings')
@@ -16,6 +20,9 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+  const { response } = await requireUser()
+  if (response) return response
+
   const { content } = await request.json() as { content: string }
   const supabase = await createClient()
 

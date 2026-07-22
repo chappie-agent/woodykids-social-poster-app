@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/supabase/require-user'
 import { createAnthropicClient } from '@/lib/anthropic/client'
 import { buildSystemPrompt, buildUserContent, buildUploadUserContent, parseCaptionResponse } from '@/lib/anthropic/caption'
 import type { PostSource, PostCaption } from '@/lib/types'
@@ -10,6 +11,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const { response } = await requireUser()
+  if (response) return response
+
   const { id } = await params
 
   const body = await request.json().catch(() => ({})) as { source?: PostSource }

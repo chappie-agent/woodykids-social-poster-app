@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getProducts } from '@/lib/shopify/client'
 import { tokenize, isTooSimilar } from '@/lib/shopify/similarity'
 import type { Post, PostCaption, ShopifyProduct } from '@/lib/types'
+import { requireUser } from '@/lib/supabase/require-user'
 
 const makeCaption = (): PostCaption => ({
   opener: { variants: ['Opener variant 1.', 'Opener variant 2.', 'Opener variant 3.'], selected: 0 },
@@ -17,6 +18,9 @@ const makeCaption = (): PostCaption => ({
 })
 
 export async function POST(request: NextRequest) {
+  const { response } = await requireUser()
+  if (response) return response
+
   const { id, position, excludeProductIds, isPerson } = await request.json() as {
     id: string
     position: number

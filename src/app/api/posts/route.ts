@@ -1,6 +1,7 @@
 // src/app/api/posts/route.ts
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/supabase/require-user'
 import type { Post, PostState, PostSource, CropData, PostCaption } from '@/lib/types'
 
 function mapPost(row: Record<string, unknown>): Post {
@@ -18,6 +19,9 @@ function mapPost(row: Record<string, unknown>): Post {
 }
 
 export async function GET() {
+  const { response } = await requireUser()
+  if (response) return response
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('posts')

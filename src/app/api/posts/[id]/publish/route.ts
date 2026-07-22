@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/supabase/require-user'
 import { scheduleZernioPost } from '@/lib/zernio/client'
 import { assembleCaption } from '@/lib/zernio/format'
 import { cropImageFromUrl } from '@/lib/image/crop'
@@ -30,6 +31,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const { response } = await requireUser()
+  if (response) return response
+
   const { id } = await params
   let body: PublishBody
   try {

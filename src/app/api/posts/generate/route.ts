@@ -3,8 +3,12 @@ import { getProducts } from '@/lib/shopify/client'
 import { tokenize, isTooSimilar } from '@/lib/shopify/similarity'
 import type { Post, ShopifyProduct } from '@/lib/types'
 import { randomUUID } from 'crypto'
+import { requireUser } from '@/lib/supabase/require-user'
 
 export async function POST(request: NextRequest) {
+  const { response } = await requireUser()
+  if (response) return response
+
   const { count, existingProductIds } = await request.json() as {
     count: number
     existingProductIds?: string[]

@@ -5,10 +5,14 @@
 // Instagram-account zodat de bottom-rij overeenkomt qua positie.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/supabase/require-user'
 
 const ALLOWED = [1, 2, 3] as const
 
 export async function GET() {
+  const { response } = await requireUser()
+  if (response) return response
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('settings')
@@ -21,6 +25,9 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+  const { response } = await requireUser()
+  if (response) return response
+
   const body = await request.json().catch(() => ({})) as { column?: number }
   const col = body.column
   if (typeof col !== 'number' || !ALLOWED.includes(col as typeof ALLOWED[number])) {
