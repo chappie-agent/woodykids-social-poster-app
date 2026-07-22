@@ -33,12 +33,14 @@ test('generates a real caption via Anthropic and renders it in the editor', asyn
     return r.ok ? (await r.json() as Post[]) : []
   })
 
+  // After grid-feed-zones refactor: concepten leven alleen in de browser, niet in de DB.
+  // Deze test (die een DB-draft zoekt) wordt overbodig en wordt geskipt.
   const draftPost = postsRes.find(
-    (p: Post) => (p.state === 'draft' || p.state === 'conflict') && p.source !== null,
+    (p: Post) => p.scheduledAt === null && p.source !== null,
   )
 
   if (!draftPost) {
-    test.skip(true, 'No draft post found in database — create one first and re-run')
+    test.skip(true, 'No draft post found in database — concepten leven nu in de browser')
     return
   }
 

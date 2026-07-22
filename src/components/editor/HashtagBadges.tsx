@@ -4,22 +4,25 @@ import type { Hashtag } from '@/lib/types'
 
 type Props = {
   hashtags: Hashtag[]
+  disabled?: boolean
   onChange: (hashtags: Hashtag[]) => void
 }
 
-export function HashtagBadges({ hashtags, onChange }: Props) {
+export function HashtagBadges({ hashtags, disabled, onChange }: Props) {
   function toggle(index: number) {
+    if (disabled) return
     onChange(hashtags.map((h, i) => i === index ? { ...h, active: !h.active } : h))
   }
 
   return (
-    <div className="space-y-2">
+    <div className={['space-y-2', disabled ? 'opacity-60 pointer-events-none' : ''].join(' ')}>
       <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">Hashtags</p>
       <div className="flex flex-wrap gap-1.5">
         {hashtags.map((tag, i) => (
           <button
             key={tag.text}
             onClick={() => toggle(i)}
+            disabled={disabled}
             className={[
               'text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors',
               tag.active

@@ -1,27 +1,32 @@
 // src/app/api/posts/route.ts
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/supabase/require-user'
 import type { Post, PostState, PostSource, CropData, PostCaption } from '@/lib/types'
 
 function mapPost(row: Record<string, unknown>): Post {
   return {
     id: row.id as string,
     state: row.state as PostState,
-    position: row.position as number,
+    position: (row.position as number | null) ?? null,
     source: (row.source as PostSource) ?? null,
     cropData: (row.crop_data as CropData) ?? { x: 0, y: 0, scale: 1 },
     caption: (row.caption as PostCaption) ?? null,
     scheduledAt: (row.scheduled_at as string) ?? null,
     isPerson: Boolean(row.is_person),
+    zernioPostId: (row.zernio_post_id as string) ?? undefined,
   }
 }
 
 export async function GET() {
+  const { response } = await requireUser()
+  if (response) return response
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('posts')
     .select('*')
-    .order('position')
+    .order('scheduled_at', { ascending: false })
 
   if (error) {
     console.error('[/api/posts] Supabase error:', error)

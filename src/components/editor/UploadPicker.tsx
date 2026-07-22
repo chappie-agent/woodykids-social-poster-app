@@ -3,16 +3,16 @@
 import { useState, useRef } from 'react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { createClient } from '@/lib/supabase/client'
+import { useGridStore } from '@/lib/store/gridStore'
 import type { Post } from '@/lib/types'
 
 type Props = {
   open: boolean
-  position: number
   onClose: () => void
   onCreated: (post: Post) => void
 }
 
-export function UploadPicker({ open, position, onClose, onCreated }: Props) {
+export function UploadPicker({ open, onClose, onCreated }: Props) {
   const [files, setFiles] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
   const [overLimitWarning, setOverLimitWarning] = useState(false)
@@ -63,20 +63,31 @@ export function UploadPicker({ open, position, onClose, onCreated }: Props) {
       }))
 
       const mediaType: 'image' | 'video' = files[0].type.startsWith('video/') ? 'video' : 'image'
-
-      const res = await fetch('/api/posts/create-upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mediaUrls, mediaType, userPrompt, position }),
-      })
-      if (!res.ok) {
-        throw new Error(`${res.status}`)
+      const source = { kind: 'upload' as const, mediaUrls, mediaType, userPrompt }
+      const post: Post = {
+        id: crypto.randomUUID(),
+        state: 'locked',
+        position: null,
+        source,
+        cropData: { x: 0, y: 0, scale: 1 },
+        caption: null,
+        scheduledAt: null,
+        isPerson: false,
       }
-      const post = await res.json() as Post
-
-      fetch(`/api/posts/${post.id}/generate-caption`, { method: 'POST' }).catch(() => {})
 
       onCreated(post)
+      fetch(`/api/posts/${post.id}/generate-caption`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source }),
+      })
+        .then(r => (r.ok ? r.json() : null))
+        .then((updated: { caption?: Post['caption'] } | null) => {
+          if (updated?.caption) {
+            useGridStore.getState().updatePost(post.id, { caption: updated.caption })
+          }
+        })
+        .catch(() => {})
       reset()
       onClose()
     } catch {

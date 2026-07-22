@@ -22,6 +22,7 @@ describe('getProducts', () => {
           products: [{
             id: 123,
             title: 'Houten treintje',
+            status: 'active',
             images: [{ src: 'https://cdn.shopify.com/img.jpg' }],
             variants: [{ id: 456, title: 'Standaard', price: '24.95' }],
           }],
@@ -51,7 +52,7 @@ describe('getProducts', () => {
       .mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({
-          products: [{ id: 1, title: 'Solo', images: [], variants: [] }],
+          products: [{ id: 1, title: 'Solo', status: 'active', images: [], variants: [] }],
         }),
       } as Response)
       .mockResolvedValueOnce({

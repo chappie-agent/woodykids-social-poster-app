@@ -7,11 +7,16 @@ vi.mock('@/lib/supabase/server', () => ({
 }))
 
 function makeMockSupabase(result: { data: unknown; error: unknown }) {
+  // Het nieuwe route-bestand doet `from(...).select(...).eq(...)` zonder .single() —
+  // de eq() call moet daarom direct resolven naar { data: row[] | null, error }.
   const chain = {
     from: vi.fn().mockReturnThis(),
     select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    single: vi.fn().mockResolvedValue(result),
+    eq: vi.fn().mockResolvedValue({
+      data: result.data ? [result.data] : null,
+      error: result.error,
+    }),
+    delete: vi.fn().mockReturnThis(),
   }
   return chain
 }

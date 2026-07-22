@@ -1,27 +1,38 @@
 // src/app/api/settings/tone-of-voice/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/supabase/require-user'
 
 export async function GET() {
+  const { response } = await requireUser()
+  if (response) return response
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('settings')
     .select('tone_of_voice')
     .eq('id', 1)
-    .single()
+    .maybeSingle()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ content: data.tone_of_voice })
+  // Geen rij → leeg veld; UI laat user gewoon iets typen + opslaan.
+  return NextResponse.json({ content: data?.tone_of_voice ?? '' })
 }
 
 export async function PUT(request: NextRequest) {
+  const { response } = await requireUser()
+  if (response) return response
+
   const { content } = await request.json() as { content: string }
   const supabase = await createClient()
 
+  // Upsert zodat de eerste save ook werkt als er nog geen rij is.
   const { error } = await supabase
     .from('settings')
-    .update({ tone_of_voice: content, updated_at: new Date().toISOString() })
-    .eq('id', 1)
+    .upsert(
+      { id: 1, tone_of_voice: content, updated_at: new Date().toISOString() },
+      { onConflict: 'id' },
+    )
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ content })
